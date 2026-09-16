@@ -97,7 +97,7 @@ Sonrasında hafta içi her sabah 05:00 UTC'de kendiliğinden çalışır.
 | --- | --- | --- |
 | `CATEGORIES` | `cs.AI, cs.CL, cs.LG, cs.SD` | Taranan arXiv kategorileri |
 | `WINDOW_HOURS` | `48` | Kaç saat geriye bakılır |
-| `MAX_RESULTS` | `300` | arXiv'den tek istekte çekilen kayıt |
+| `MAX_RESULTS` | `100` | Her kategori için arXiv'den çekilen kayıt |
 | `MAX_PAPERS` | `120` | Günde değerlendirilecek en fazla makale (maliyet sınırı) |
 | `WORKERS` | `4` | Aynı anda kaç Jev isteği |
 | `SEEN_LIMIT` | `5000` | `seen.json` içinde tutulan ID sayısı |
@@ -247,6 +247,25 @@ Jev iki farklı tipte cevap döndürür:
   konum, tam sayı değil (3 seviyeli bir rubrikte `1.7` normaldir). En büyük
   seviye indeksine, yani `seviye_sayısı − 1`'e bölünerek 0–1'e çekilir.
 - **choice** (`topic`) — seçilen etiket, `confidence` ile birlikte.
+
+---
+
+## arXiv isteği neden kategori başına ayrı?
+
+arXiv API'si `search_query=cat:cs.AI+OR+cat:cs.CL` gibi **OR'lu sorguları
+`406 Not Acceptable` ile reddediyor.** Bu ölçülerek bulundu: GitHub runner'ında
+arka arkaya 11 farklı OR sorgusu (farklı `Accept`/`User-Agent` başlıkları, `+`
+ve `%20` kodlaması, parantezli hâli, sıralamalı ve sıralamasız) hepsi 406
+verdi; hemen ardından tek kategorili `search_query=cat:cs.AI` başlıksız bile
+200 döndü.
+
+Bu yüzden `radar.py` her kategoriyi ayrı istekle çeker, aralarında en az 3
+saniye bekler ve sonuçları yerelde ID'ye göre birleştirir. Bir kategori
+başarısız olursa diğerleri yine işlenir.
+
+arXiv yük altında 429 yerine de 406 dönebiliyor (aynı koşuda tek başına
+çalışan bir kategori sorgusu bir kez 406 verdi), o yüzden 406 geçici kabul
+edilip yeniden denenir; `400` gibi gerçekten istek kaynaklı hatalar denenmez.
 
 ---
 

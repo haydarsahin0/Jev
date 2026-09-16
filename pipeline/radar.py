@@ -33,7 +33,7 @@ import xml.etree.ElementTree as ET
 
 CATEGORIES = ["cs.AI", "cs.CL", "cs.LG", "cs.SD"]
 WINDOW_HOURS = 48          # Son kac saatteki makaleler alinsin
-MAX_RESULTS = 300          # arXiv'den tek istekte cekilecek kayit sayisi
+MAX_RESULTS = 100          # Her kategori icin arXiv'den cekilecek kayit sayisi
 MAX_PAPERS = 120           # Gunde degerlendirilecek en fazla makale (maliyet siniri)
 WORKERS = 4                # Ayni anda kac TypeSafe istegi
 SEEN_LIMIT = 5000          # seen.json icinde tutulacak ID sayisi
@@ -51,6 +51,10 @@ ARXIV_HEADERS = {
 }
 ARXIV_ATTEMPTS = 3         # Gecici arXiv hatalarinda toplam deneme
 ARXIV_RETRY_WAIT = 3.0     # arXiv kurallari geregi denemeler arasi en az bekleme
+# arXiv yuk altinda 429 yerine 406 Not Acceptable dondurebiliyor: olcumlerde
+# tek basina calisan bir kategori sorgusu ayni kosu icinde 406 verdi. Bu
+# yuzden 406 da gecici kabul edilip yeniden deneniyor.
+ARXIV_RETRY_CODES = (406, 429)
 
 TYPESAFE_ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 TYPESAFE_MODEL = "jev-latest"
@@ -157,12 +161,17 @@ def log(message):
 # arXiv
 # --------------------------------------------------------------------------
 
-def build_arxiv_url(categories=CATEGORIES, max_results=MAX_RESULTS):
-    """arXiv API sorgu URL'ini uretir (tek istek, en yeniler once)."""
-    search = " OR ".join("cat:" + c for c in categories)
+def build_arxiv_url(category, max_results=MAX_RESULTS):
+    """Tek bir kategori icin arXiv sorgu URL'i (en yeniler once).
+
+    Kategorileri "cat:cs.AI OR cat:cs.CL ..." seklinde tek sorguda birlestirmek
+    arXiv'den 406 Not Acceptable donduruyor (hangi baslik gonderilirse
+    gonderilsin); tek kategorili sorgu ise sorunsuz calisiyor. Bu yuzden her
+    kategori ayri istekle cekilip yerelde birlestiriliyor.
+    """
     query = urllib.parse.urlencode(
         {
-            "search_query": search,
+            "search_query": "cat:" + category,
             "start": 0,
             "max_results": max_results,
             "sortBy": "submittedDate",
@@ -170,6 +179,41 @@ def build_arxiv_url(categories=CATEGORIES, max_results=MAX_RESULTS):
         }
     )
     return ARXIV_ENDPOINT + "?" + query
+
+
+def fetch_categories(categories=CATEGORIES, sleep=time.sleep):
+    """Her kategoriyi ayri istekle ceker, birlestirir ve ID'ye gore tekillestirir.
+
+    Istekler arasinda arXiv'in istedigi gibi beklenir. Bir kategori basarisiz
+    olursa digerleri yine islenir; hepsi basarisizsa hata firlatilir.
+    """
+    papers = []
+    ids = set()
+    errors = []
+
+    for index, category in enumerate(categories):
+        if index:
+            sleep(ARXIV_RETRY_WAIT)
+        try:
+            xml_text = fetch_arxiv(build_arxiv_url(category), sleep=sleep)
+            entries = parse_atom(xml_text)
+        except Exception as error:
+            errors.append((category, error))
+            log("  ! %s alinamadi: %s" % (category, error))
+            continue
+        fresh = 0
+        for paper in entries:
+            if paper["id"] not in ids:
+                ids.add(paper["id"])
+                papers.append(paper)
+                fresh += 1
+        log("  %s: %d kayit (%d yeni)" % (category, len(entries), fresh))
+
+    if errors and len(errors) == len(categories):
+        raise RuntimeError("hicbir kategori alinamadi: %s" % errors[0][1])
+
+    papers.sort(key=lambda p: p.get("published", ""), reverse=True)
+    return papers
 
 
 def fetch_arxiv(url, timeout=60, attempts=ARXIV_ATTEMPTS, sleep=time.sleep):
@@ -187,9 +231,7 @@ def fetch_arxiv(url, timeout=60, attempts=ARXIV_ATTEMPTS, sleep=time.sleep):
                 return response.read().decode("utf-8", "replace")
         except urllib.error.HTTPError as error:
             last_error = "HTTP Error %s: %s" % (error.code, error.reason)
-            # 406/400 gibi hatalar istegin kendisinden kaynaklanir, tekrar
-            # denemek duzeltmez.
-            if not (error.code == 429 or 500 <= error.code < 600):
+            if not (error.code in ARXIV_RETRY_CODES or 500 <= error.code < 600):
                 raise RuntimeError(last_error) from None
             wait = _parse_retry_after(error.headers) or _retry_delay(attempt)
         except (urllib.error.URLError, TimeoutError, OSError) as error:
@@ -710,24 +752,21 @@ def main(argv=None):
         log("arXiv yaniti dosyadan okunuyor: %s" % args.xml)
         try:
             with open(args.xml, "r", encoding="utf-8") as handle:
-                xml_text = handle.read()
+                papers = parse_atom(handle.read())
         except OSError as error:
             log("HATA: %s okunamadi: %s" % (args.xml, error))
             return 1
+        except ET.ParseError as error:
+            log("HATA: arXiv yaniti ayristirilamadi: %s" % error)
+            return 1
     else:
-        log("arXiv sorgusu: %s" % ", ".join(CATEGORIES))
+        log("arXiv sorgusu (kategori basina ayri istek): %s" % ", ".join(CATEGORIES))
         try:
-            xml_text = fetch_arxiv(build_arxiv_url())
+            papers = fetch_categories()
         except Exception as error:
             log("HATA: arXiv'e ulasilamadi: %s" % error)
             return 1
-
-    try:
-        papers = parse_atom(xml_text)
-    except ET.ParseError as error:
-        log("HATA: arXiv yaniti ayristirilamadi: %s" % error)
-        return 1
-    log("  %d kayit dondu" % len(papers))
+    log("  toplam %d benzersiz kayit" % len(papers))
 
     papers = filter_recent(papers, now)
     log("  son %d saatte: %d" % (WINDOW_HOURS, len(papers)))

@@ -371,14 +371,20 @@ class RetryTests(unittest.TestCase):
 
 
 class UrlTests(unittest.TestCase):
-    def test_query_covers_every_category_and_sorts_by_date(self):
-        url = radar.build_arxiv_url()
+    def test_query_is_single_category_and_sorts_by_date(self):
+        url = radar.build_arxiv_url("cs.AI")
         self.assertTrue(url.startswith(radar.ARXIV_ENDPOINT + "?"))
-        for category in radar.CATEGORIES:
-            self.assertIn("cat%3A" + category.replace(".", "."), url.replace("%3A", "%3A"))
+        self.assertIn("cat%3Acs.AI", url)
         self.assertIn("sortBy=submittedDate", url)
         self.assertIn("sortOrder=descending", url)
-        self.assertIn("max_results=300", url)
+        self.assertIn("max_results=%d" % radar.MAX_RESULTS, url)
+
+    def test_query_never_contains_or(self):
+        # OR'lu sorgular arXiv'den 406 donduruyor; her kategori ayri cekilir.
+        for category in radar.CATEGORIES:
+            url = radar.build_arxiv_url(category)
+            self.assertNotIn("OR", url)
+            self.assertEqual(url.count("cat%3A"), 1)
 
     def test_short_id_strips_version(self):
         self.assertEqual(radar.short_id("http://arxiv.org/abs/2609.01234v12"), "2609.01234")
@@ -617,12 +623,18 @@ class ArxivFetchTests(unittest.TestCase):
         ArxivFetchHandler.script = [(200, "<feed>ok</feed>", None)]
         self.assertEqual(self.fetch(), "<feed>ok</feed>")
 
-    def test_406_is_not_retried(self):
-        # Istegin kendisi kabul edilmiyorsa tekrar denemek duzeltmez.
-        ArxivFetchHandler.script = [(406, "not acceptable", None)]
+    def test_406_is_retried(self):
+        # arXiv yuk altinda 429 yerine 406 dondurebiliyor; olcumlerde tek
+        # basina calisan bir kategori sorgusu ayni kosu icinde 406 verdi.
+        ArxivFetchHandler.script = [(406, "not acceptable", None), (200, "<feed/>", None)]
+        self.assertEqual(self.fetch(), "<feed/>")
+        self.assertEqual(len(ArxivFetchHandler.received), 2)
+
+    def test_400_is_not_retried(self):
+        ArxivFetchHandler.script = [(400, "bad request", None)]
         with self.assertRaises(RuntimeError) as caught:
             self.fetch()
-        self.assertIn("406", str(caught.exception))
+        self.assertIn("400", str(caught.exception))
         self.assertEqual(len(ArxivFetchHandler.received), 1)
         self.assertEqual(self.slept, [])
 
@@ -644,4 +656,86 @@ class ArxivFetchTests(unittest.TestCase):
 
     def test_endpoint_is_https(self):
         self.assertTrue(radar.ARXIV_ENDPOINT.startswith("https://"))
-        self.assertTrue(radar.build_arxiv_url().startswith("https://export.arxiv.org/"))
+        self.assertTrue(radar.build_arxiv_url("cs.AI").startswith("https://export.arxiv.org/"))
+
+
+class FetchCategoriesTests(unittest.TestCase):
+    """Kategori basina ayri istek.
+
+    arXiv "cat:cs.AI OR cat:cs.CL" gibi OR'lu sorgulari 406 ile reddediyor
+    (olcumde arka arkaya 11 OR sorgusu 406 verdi, hemen ardindan tek
+    kategorili sorgu 200 dondu). Bu yuzden her kategori ayri cekiliyor.
+    """
+
+    def setUp(self):
+        self.calls = []
+        self.slept = []
+        self.real_fetch = radar.fetch_arxiv
+
+    def tearDown(self):
+        radar.fetch_arxiv = self.real_fetch
+
+    def feed(self, ids):
+        entries = "".join("""
+          <entry>
+            <id>http://arxiv.org/abs/%s v1</id>
+            <published>2026-09-16T05:00:00Z</published>
+            <title>T %s</title><summary>S</summary>
+            <link href="http://arxiv.org/abs/%s" rel="alternate"/>
+          </entry>""".replace(" v1", "v1") % (i, i, i) for i in ids)
+        return ('<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom">'
+                + entries + '</feed>')
+
+    def install(self, mapping):
+        def fake(url, **kwargs):
+            self.calls.append(url)
+            for category, result in mapping.items():
+                if "cat%3A" + category in url or "cat:" + category in url:
+                    if isinstance(result, Exception):
+                        raise result
+                    return self.feed(result)
+            raise AssertionError("beklenmeyen url: " + url)
+        radar.fetch_arxiv = fake
+
+    def test_one_request_per_category(self):
+        self.install({"cs.AI": ["1"], "cs.CL": ["2"], "cs.LG": ["3"], "cs.SD": ["4"]})
+        papers = radar.fetch_categories(sleep=self.slept.append)
+        self.assertEqual(len(self.calls), 4)
+        self.assertEqual(sorted(p["id"] for p in papers), ["1", "2", "3", "4"])
+
+    def test_no_or_in_any_url(self):
+        self.install({c: [] for c in radar.CATEGORIES})
+        radar.fetch_categories(sleep=self.slept.append)
+        for url in self.calls:
+            self.assertNotIn("OR", url)
+            self.assertNotIn("+OR+", url)
+            self.assertEqual(url.count("cat%3A"), 1)
+
+    def test_cross_listed_paper_appears_once(self):
+        self.install({"cs.AI": ["1", "9"], "cs.CL": ["9"], "cs.LG": ["9"], "cs.SD": ["2"]})
+        papers = radar.fetch_categories(sleep=self.slept.append)
+        self.assertEqual(sorted(p["id"] for p in papers), ["1", "2", "9"])
+
+    def test_waits_between_categories(self):
+        self.install({c: [] for c in radar.CATEGORIES})
+        radar.fetch_categories(sleep=self.slept.append)
+        self.assertEqual(len(self.slept), len(radar.CATEGORIES) - 1)
+        for wait in self.slept:
+            self.assertGreaterEqual(wait, radar.ARXIV_RETRY_WAIT)
+
+    def test_one_failing_category_does_not_stop_the_rest(self):
+        self.install({"cs.AI": ["1"], "cs.CL": ["2"], "cs.LG": ["3"],
+                      "cs.SD": RuntimeError("HTTP Error 406: Not Acceptable")})
+        papers = radar.fetch_categories(sleep=self.slept.append)
+        self.assertEqual(sorted(p["id"] for p in papers), ["1", "2", "3"])
+
+    def test_all_categories_failing_raises(self):
+        self.install({c: RuntimeError("HTTP Error 406") for c in radar.CATEGORIES})
+        with self.assertRaises(RuntimeError):
+            radar.fetch_categories(sleep=self.slept.append)
+
+    def test_merged_papers_are_newest_first(self):
+        self.install({"cs.AI": ["1"], "cs.CL": ["2"], "cs.LG": ["3"], "cs.SD": ["4"]})
+        papers = radar.fetch_categories(sleep=self.slept.append)
+        published = [p["published"] for p in papers]
+        self.assertEqual(published, sorted(published, reverse=True))
