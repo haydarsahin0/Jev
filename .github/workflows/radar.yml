@@ -2,8 +2,8 @@ name: arXiv Radar
 
 on:
   schedule:
-    # Hafta içi her sabah 05:00 UTC.
-    - cron: "0 5 * * 1-5"
+    # Her 12 saatte bir: 05:00 ve 17:00 UTC (08:00 ve 20:00 TSİ), her gün.
+    - cron: "0 5,17 * * *"
   workflow_dispatch:
     inputs:
       limit:

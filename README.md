@@ -1,6 +1,6 @@
 # arXiv Radar
 
-Her hafta içi sabah arXiv'deki yeni AI makalelerini tarayan, TypeSafe'in **Jev**
+Günde iki kez arXiv'deki yeni AI makalelerini tarayan, TypeSafe'in **Jev**
 modeliyle değerlendiren ve sonuçları GitHub Pages'te yayınlayan tek kullanıcılık
 bir takip sistemi.
 
@@ -14,7 +14,7 @@ konu için tek seçim. Site bu sinyalleri sizin ağırlıklarınızla tek bir pu
 ## Mimari
 
 ```
-GitHub Actions  (cron: hafta içi 05:00 UTC  +  elle çalıştırma)
+GitHub Actions  (cron: her 12 saatte bir, 05:00 & 17:00 UTC  +  elle çalıştırma)
 │
 ├─ 1. pipeline/radar.py
 │      arXiv API ──► son 48 saat, görülmemiş makaleler
@@ -81,7 +81,7 @@ başlığında kullanılır. Koda, loglara, üretilen JSON'a veya siteye **hiçb
 https://<kullanıcı-adınız>.github.io/<depo-adı>/
 ```
 
-Sonrasında hafta içi her sabah 05:00 UTC'de kendiliğinden çalışır.
+Sonrasında her 12 saatte bir (05:00 ve 17:00 UTC) kendiliğinden çalışır.
 
 > `limit` boş bırakılırsa günlük sınır olan `MAX_PAPERS` (120) geçerli olur.
 > `mock` kutusu işaretlenirse API çağrısı yapılmaz, sahte sinyal üretilir ve
@@ -136,8 +136,10 @@ puanı düşürür. Kaydırıcıyı oynattığınız anda liste yeniden sıralan
 
 ### Zamanlamayı değiştirmek
 
-`.github/workflows/radar.yml` içindeki `cron: "0 5 * * 1-5"` satırı. Saat
-**UTC**'dir; Türkiye saati için 3 saat ekleyin (05:00 UTC = 08:00 TSİ).
+`.github/workflows/radar.yml` içindeki `cron: "0 5,17 * * *"` satırı. Saat
+**UTC**'dir; Türkiye saati için 3 saat ekleyin (05:00 ve 17:00 UTC = 08:00 ve
+20:00 TSİ). Günde bir kez yeterliyse `"0 5 * * *"`, sadece hafta içi için
+`"0 5,17 * * 1-5"` yazın.
 
 ---
 
