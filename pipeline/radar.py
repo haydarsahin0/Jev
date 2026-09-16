@@ -55,6 +55,7 @@ ARXIV_RETRY_WAIT = 3.0     # arXiv kurallari geregi denemeler arasi en az beklem
 # tek basina calisan bir kategori sorgusu ayni kosu icinde 406 verdi. Bu
 # yuzden 406 da gecici kabul edilip yeniden deneniyor.
 ARXIV_RETRY_CODES = (406, 429)
+ARXIV_MAX_PAGES = 8        # Kategori basina en fazla kac sayfa cekilir
 
 TYPESAFE_ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 TYPESAFE_MODEL = "jev-latest"
@@ -161,7 +162,7 @@ def log(message):
 # arXiv
 # --------------------------------------------------------------------------
 
-def build_arxiv_url(category, max_results=MAX_RESULTS):
+def build_arxiv_url(category, max_results=MAX_RESULTS, start=0):
     """Tek bir kategori icin arXiv sorgu URL'i (en yeniler once).
 
     Kategorileri "cat:cs.AI OR cat:cs.CL ..." seklinde tek sorguda birlestirmek
@@ -172,7 +173,7 @@ def build_arxiv_url(category, max_results=MAX_RESULTS):
     query = urllib.parse.urlencode(
         {
             "search_query": "cat:" + category,
-            "start": 0,
+            "start": start,
             "max_results": max_results,
             "sortBy": "submittedDate",
             "sortOrder": "descending",
@@ -181,7 +182,30 @@ def build_arxiv_url(category, max_results=MAX_RESULTS):
     return ARXIV_ENDPOINT + "?" + query
 
 
-def fetch_categories(categories=CATEGORIES, sleep=time.sleep):
+def fetch_category(category, since=None, sleep=time.sleep, max_pages=ARXIV_MAX_PAGES):
+    """Tek kategoriyi ceker; `since` verilirse o tarihe inene kadar sayfalar.
+
+    arXiv en yeniden eskiye siralar, bu yuzden bir sayfanin en eski kaydi
+    pencerenin disina dustugunde durmak yeterlidir.
+    """
+    entries = []
+    pages = max_pages if since is not None else 1
+
+    for page in range(pages):
+        if page:
+            sleep(ARXIV_RETRY_WAIT)
+        url = build_arxiv_url(category, start=page * MAX_RESULTS)
+        batch = parse_atom(fetch_arxiv(url, sleep=sleep))
+        if not batch:
+            break
+        entries.extend(batch)
+        oldest = parse_timestamp(batch[-1].get("published"))
+        if since is not None and oldest is not None and oldest < since:
+            break
+    return entries
+
+
+def fetch_categories(categories=CATEGORIES, since=None, sleep=time.sleep):
     """Her kategoriyi ayri istekle ceker, birlestirir ve ID'ye gore tekillestirir.
 
     Istekler arasinda arXiv'in istedigi gibi beklenir. Bir kategori basarisiz
@@ -195,8 +219,7 @@ def fetch_categories(categories=CATEGORIES, sleep=time.sleep):
         if index:
             sleep(ARXIV_RETRY_WAIT)
         try:
-            xml_text = fetch_arxiv(build_arxiv_url(category), sleep=sleep)
-            entries = parse_atom(xml_text)
+            entries = fetch_category(category, since=since, sleep=sleep)
         except Exception as error:
             errors.append((category, error))
             log("  ! %s alinamadi: %s" % (category, error))
@@ -727,6 +750,13 @@ def parse_args(argv=None):
                         help="En fazla bu kadar makale degerlendir")
     parser.add_argument("--data-dir", default=DATA_DIR,
                         help="Cikti klasoru (varsayilan: site/data)")
+    parser.add_argument("--window-hours", type=int, default=WINDOW_HOURS,
+                        help="Kac saat geriye bakilsin (varsayilan %d)" % WINDOW_HOURS)
+    parser.add_argument("--max-papers", type=int, default=MAX_PAPERS,
+                        help="Degerlendirilecek en fazla makale (varsayilan %d)" % MAX_PAPERS)
+    parser.add_argument("--harvest", default=None,
+                        help="Jev'e hic istek atmadan sadece arXiv ust verisini "
+                             "topla ve bu dosyaya yaz (maliyetsiz kesif)")
     parser.add_argument("--xml", default=None,
                         help="arXiv'e istek atmak yerine bu Atom XML dosyasini oku "
                              "(cevrimdisi deneme ve hata ayiklama icin)")
@@ -760,23 +790,45 @@ def main(argv=None):
             log("HATA: arXiv yaniti ayristirilamadi: %s" % error)
             return 1
     else:
-        log("arXiv sorgusu (kategori basina ayri istek): %s" % ", ".join(CATEGORIES))
+        log("arXiv sorgusu (kategori basina ayri istek, son %d saat): %s"
+            % (args.window_hours, ", ".join(CATEGORIES)))
         try:
-            papers = fetch_categories()
+            papers = fetch_categories(
+                since=now - dt.timedelta(hours=args.window_hours))
         except Exception as error:
             log("HATA: arXiv'e ulasilamadi: %s" % error)
             return 1
     log("  toplam %d benzersiz kayit" % len(papers))
 
-    papers = filter_recent(papers, now)
-    log("  son %d saatte: %d" % (WINDOW_HOURS, len(papers)))
+    papers = filter_recent(papers, now, hours=args.window_hours)
+    log("  son %d saatte: %d" % (args.window_hours, len(papers)))
+
+    if args.harvest:
+        by_day = {}
+        for paper in papers:
+            by_day.setdefault(paper.get("published", "")[:10], []).append(paper)
+        log("  gune gore dagilim:")
+        for day in sorted(by_day, reverse=True):
+            log("    %s  %4d" % (day, len(by_day[day])))
+        write_json(args.harvest, {
+            "generated_at": generated_at,
+            "window_hours": args.window_hours,
+            "count": len(papers),
+            "papers": [
+                {"id": p["id"], "title": p["title"], "published": p["published"],
+                 "categories": p["categories"], "abstract": p["abstract"][:700]}
+                for p in papers
+            ],
+        })
+        log("  hasat yazildi: %s (%d makale)" % (args.harvest, len(papers)))
+        return 0
 
     seen = load_seen(seen_path)
     seen_set = set(seen)
     fresh = [p for p in papers if p["id"] not in seen_set]
     log("  daha once gorulmemis: %d" % len(fresh))
 
-    cap = MAX_PAPERS if args.limit is None else min(args.limit, MAX_PAPERS)
+    cap = args.max_papers if args.limit is None else min(args.limit, args.max_papers)
     selected = fresh[:cap]
     if len(fresh) > len(selected):
         log("  siniri asan %d makale bugun atlandi" % (len(fresh) - len(selected)))

@@ -11,6 +11,16 @@ on:
         required: false
         type: string
         default: ""
+      window_hours:
+        description: "Kaç saat geriye bakılsın (boş = 48)"
+        required: false
+        type: string
+        default: ""
+      harvest:
+        description: "Jev'i hiç çağırma, sadece arXiv üst verisini topla (maliyetsiz)"
+        required: false
+        type: boolean
+        default: false
       mock:
         description: "API çağrısı yapmadan sahte veri üret"
         required: false
@@ -50,14 +60,23 @@ jobs:
           # çıktısına veya siteye hiçbir şekilde yazılmaz.
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
           RADAR_LIMIT: ${{ inputs.limit }}
+          RADAR_WINDOW: ${{ inputs.window_hours }}
+          RADAR_HARVEST: ${{ inputs.harvest }}
           RADAR_MOCK: ${{ inputs.mock }}
         run: |
           args=""
           if [ -n "$RADAR_LIMIT" ]; then
             args="$args --limit $RADAR_LIMIT"
           fi
+          if [ -n "$RADAR_WINDOW" ]; then
+            args="$args --window-hours $RADAR_WINDOW"
+          fi
           if [ "$RADAR_MOCK" = "true" ]; then
             args="$args --mock"
+          fi
+          if [ "$RADAR_HARVEST" = "true" ]; then
+            mkdir -p .harvest
+            args="$args --harvest .harvest/week.json"
           fi
           python pipeline/radar.py $args
 
@@ -68,6 +87,7 @@ jobs:
 
           # Yalnızca veri klasörü commit edilir; başka hiçbir dosya değil.
           git add --all site/data
+          if [ -d .harvest ]; then git add --all .harvest; fi
 
           if git diff --cached --quiet; then
             echo "Yeni veri yok, commit atlandı."

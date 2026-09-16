@@ -739,3 +739,68 @@ class FetchCategoriesTests(unittest.TestCase):
         papers = radar.fetch_categories(sleep=self.slept.append)
         published = [p["published"] for p in papers]
         self.assertEqual(published, sorted(published, reverse=True))
+
+
+class PaginationTests(unittest.TestCase):
+    """`since` verildiginde kategori pencereye inene kadar sayfalanir."""
+
+    def setUp(self):
+        self.real = radar.fetch_arxiv
+        self.urls = []
+        self.slept = []
+
+    def tearDown(self):
+        radar.fetch_arxiv = self.real
+
+    def feed(self, stamps):
+        entries = "".join('''
+          <entry><id>http://arxiv.org/abs/%s</id>
+          <published>%s</published><title>T</title><summary>S</summary></entry>'''
+                          % (ident, when) for ident, when in stamps)
+        return ('<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom">'
+                + entries + "</feed>")
+
+    def install(self, pages):
+        def fake(url, **kwargs):
+            self.urls.append(url)
+            index = len(self.urls) - 1
+            return self.feed(pages[index]) if index < len(pages) else self.feed([])
+        radar.fetch_arxiv = fake
+
+    def test_single_page_when_no_window_given(self):
+        self.install([[("a", "2026-09-16T05:00:00Z")]] * 4)
+        radar.fetch_category("cs.AI", since=None, sleep=self.slept.append)
+        self.assertEqual(len(self.urls), 1)
+
+    def test_pages_until_window_is_passed(self):
+        self.install([
+            [("a", "2026-09-16T05:00:00Z")],   # pencere icinde -> devam
+            [("b", "2026-09-14T05:00:00Z")],   # pencere icinde -> devam
+            [("c", "2026-09-01T05:00:00Z")],   # pencere disi -> dur
+        ])
+        since = dt.datetime(2026, 9, 10, tzinfo=UTC)
+        entries = radar.fetch_category("cs.AI", since=since, sleep=self.slept.append)
+        self.assertEqual(len(self.urls), 3)
+        self.assertEqual([e["id"] for e in entries], ["a", "b", "c"])
+
+    def test_start_offset_advances_by_max_results(self):
+        self.install([[("a", "2026-09-16T05:00:00Z")], [("b", "2026-09-01T05:00:00Z")]])
+        radar.fetch_category("cs.AI", since=dt.datetime(2026, 9, 10, tzinfo=UTC),
+                             sleep=self.slept.append)
+        self.assertIn("start=0", self.urls[0])
+        self.assertIn("start=%d" % radar.MAX_RESULTS, self.urls[1])
+
+    def test_stops_on_empty_page(self):
+        self.install([[("a", "2026-09-16T05:00:00Z")], []])
+        radar.fetch_category("cs.AI", since=dt.datetime(2026, 1, 1, tzinfo=UTC),
+                             sleep=self.slept.append)
+        self.assertEqual(len(self.urls), 2)
+
+    def test_page_cap_is_respected(self):
+        self.install([[("p%d" % i, "2026-09-16T05:00:00Z")] for i in range(20)])
+        radar.fetch_category("cs.AI", since=dt.datetime(2020, 1, 1, tzinfo=UTC),
+                             sleep=self.slept.append, max_pages=3)
+        self.assertEqual(len(self.urls), 3)
+
+    def test_build_url_accepts_start(self):
+        self.assertIn("start=300", radar.build_arxiv_url("cs.AI", start=300))
