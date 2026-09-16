@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>arXiv Radar</title>
+<meta name="description" content="Her hafta ici sabah taranan yeni arXiv AI makaleleri, Jev sinyalleriyle siralanir.">
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23B31B1B'/%3E%3Cpath d='M9 22h3l1-3h6l1 3h3L17 9h-2L9 22zm5-6 2-5 2 5h-4z' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root {
+  --accent: #B31B1B;
+  --accent-soft: rgba(179, 27, 27, 0.10);
+  --accent-line: rgba(179, 27, 27, 0.30);
+  --bg: #fbfaf8;
+  --surface: #ffffff;
+  --surface-2: #f4f2ee;
+  --ink: #1a1815;
+  --ink-2: #57524b;
+  --ink-3: #8b847a;
+  --line: #e4e0d8;
+  --line-strong: #cdc7bb;
+  --bar: #b9b2a5;
+  --bar-hype: #a8742a;
+  --good: #1f6b3a;
+  --focus: #0b63d6;
+  --shadow: 0 1px 2px rgba(26, 24, 21, .05);
+  --ui: "Schibsted Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: "Literata", ui-serif, Georgia, "Times New Roman", serif;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --accent: #ef6a63;
+    --accent-soft: rgba(239, 106, 99, 0.13);
+    --accent-line: rgba(239, 106, 99, 0.34);
+    --bg: #14120f;
+    --surface: #1c1a16;
+    --surface-2: #24211c;
+    --ink: #f0ece4;
+    --ink-2: #b6afa3;
+    --ink-3: #857e72;
+    --line: #302c26;
+    --line-strong: #453f37;
+    --bar: #5c564c;
+    --bar-hype: #b8853a;
+    --good: #63c088;
+    --focus: #6ba7ff;
+    --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  --accent: #ef6a63;
+  --accent-soft: rgba(239, 106, 99, 0.13);
+  --accent-line: rgba(239, 106, 99, 0.34);
+  --bg: #14120f;
+  --surface: #1c1a16;
+  --surface-2: #24211c;
+  --ink: #f0ece4;
+  --ink-2: #b6afa3;
+  --ink-3: #857e72;
+  --line: #302c26;
+  --line-strong: #453f37;
+  --bar: #5c564c;
+  --bar-hype: #b8853a;
+  --good: #63c088;
+  --focus: #6ba7ff;
+  --shadow: none;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--ui);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); }
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px 72px; }
+
+/* ---------- Header ---------- */
+.masthead {
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  position: sticky; top: 0; z-index: 20;
+}
+.masthead-in {
+  max-width: 1180px; margin: 0 auto; padding: 12px 16px;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+}
+.brand { display: flex; align-items: baseline; gap: 9px; margin-right: auto; }
+.brand h1 {
+  font-family: var(--serif); font-size: 21px; font-weight: 700;
+  margin: 0; letter-spacing: -.01em;
+}
+.brand .dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--accent); flex: none; align-self: center;
+}
+.meta { color: var(--ink-3); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.meta b { color: var(--ink-2); font-weight: 600; }
+
+.btn {
+  font-family: var(--ui); font-size: 13px; font-weight: 500;
+  color: var(--ink-2); background: var(--surface);
+  border: 1px solid var(--line-strong); border-radius: 7px;
+  padding: 6px 11px; cursor: pointer; white-space: nowrap;
+}
+.btn:hover { border-color: var(--accent-line); color: var(--ink); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover { filter: brightness(1.08); color: #fff; }
+
+.banner {
+  margin: 14px 0 0; padding: 10px 13px;
+  border: 1px solid var(--accent-line); background: var(--accent-soft);
+  border-radius: var(--radius); font-size: 13.5px; color: var(--ink-2);
+}
+.banner b { color: var(--ink); }
+[hidden] { display: none !important; }
+
+/* ---------- Layout ---------- */
+.cols {
+  display: grid; grid-template-columns: 252px minmax(0, 1fr);
+  gap: 26px; align-items: start; margin-top: 18px;
+}
+.side { position: sticky; top: 64px; display: grid; gap: 16px; }
+.panel {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow);
+}
+.panel h2 {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .09em; color: var(--ink-3); margin: 0 0 11px;
+}
+
+.field { margin-bottom: 11px; }
+.field:last-child { margin-bottom: 0; }
+.field label {
+  display: block; font-size: 12px; font-weight: 500;
+  color: var(--ink-2); margin-bottom: 4px;
+}
+.field input[type="search"], .field select {
+  width: 100%; font-family: var(--ui); font-size: 13.5px;
+  color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line-strong); border-radius: 7px; padding: 7px 9px;
+}
+
+.w-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; align-items: center; margin-bottom: 9px; }
+.w-row label { font-size: 12.5px; color: var(--ink-2); }
+.w-row .val { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.w-row input[type="range"] { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); margin: 0; }
+.w-row.neg label { color: var(--bar-hype); }
+
+/* ---------- List ---------- */
+.toolbar {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 10px; flex-wrap: wrap;
+}
+.count { font-size: 12.5px; color: var(--ink-3); margin-right: auto; font-variant-numeric: tabular-nums; }
+
+.list { display: grid; gap: 7px; }
+.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.card.is-open { border-color: var(--accent-line); }
+.card.flip { transition: transform .32s cubic-bezier(.22,.61,.36,1); will-change: transform; }
+@media (prefers-reduced-motion: reduce) {
+  .card.flip { transition: none !important; }
+}
+
+.head {
+  display: grid; grid-template-columns: 52px minmax(0,1fr) auto;
+  gap: 13px; align-items: start;
+  padding: 11px 13px; cursor: pointer; background: none;
+  border: 0; width: 100%; text-align: left; font: inherit; color: inherit;
+}
+.head:hover { background: var(--surface-2); }
+
+.score {
+  font-family: var(--ui); font-size: 22px; font-weight: 700;
+  line-height: 1.05; color: var(--ink); font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.score small { display: block; font-size: 9.5px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; margin-top: 2px; }
+.score.tier-read { color: var(--accent); }
+.score.tier-read small { color: var(--accent); }
+.score.tier-skim small { color: var(--ink-3); }
+.score.tier-none small { visibility: hidden; }
+
+.title {
+  font-family: var(--serif); font-size: 15.5px; font-weight: 600;
+  line-height: 1.34; margin: 0 0 3px; color: var(--ink);
+}
+.sub { font-size: 12px; color: var(--ink-3); display: flex; gap: 7px; flex-wrap: wrap; }
+.sub .pill {
+  background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: 999px; padding: 0 7px; color: var(--ink-2);
+}
+.sub .dim { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 320px; }
+.st-tag { font-weight: 600; color: var(--accent); }
+
+.bars { display: flex; align-items: flex-end; gap: 3px; height: 30px; padding-top: 2px; }
+.bars i {
+  display: block; width: 6px; background: var(--bar);
+  border-radius: 1.5px; min-height: 1.5px;
+}
+.bars i.hype { background: var(--bar-hype); }
+
+/* ---------- Detail ---------- */
+.detail { border-top: 1px solid var(--line); padding: 14px 13px 15px; background: var(--surface-2); }
+.abstract {
+  font-family: var(--serif); font-size: 14.5px; line-height: 1.62;
+  color: var(--ink-2); margin: 0 0 13px; max-width: 74ch;
+}
+.sig-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 7px; margin-bottom: 13px;
+}
+.sig {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 7px; padding: 6px 9px;
+}
+.sig .k { font-size: 11px; color: var(--ink-3); }
+.sig .v { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sig .track { height: 3px; background: var(--line); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+.sig .fill { height: 100%; background: var(--accent); border-radius: 2px; }
+.sig.neg .fill { background: var(--bar-hype); }
+
+.acts { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 11px; }
+.acts .sep { width: 1px; height: 20px; background: var(--line-strong); margin: 0 3px; }
+.chip {
+  font-family: var(--ui); font-size: 12.5px; font-weight: 500;
+  border: 1px solid var(--line-strong); background: var(--surface);
+  color: var(--ink-2); border-radius: 999px; padding: 4px 11px; cursor: pointer;
+}
+.chip:hover { border-color: var(--accent-line); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.link {
+  font-size: 12.5px; font-weight: 500; text-decoration: none;
+  border: 1px solid var(--line-strong); border-radius: 999px; padding: 4px 11px;
+  color: var(--ink-2);
+}
+.link:hover { border-color: var(--accent-line); color: var(--accent); }
+
+.note-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); margin-bottom: 5px; }
+textarea.note {
+  width: 100%; min-height: 66px; resize: vertical;
+  font-family: var(--serif); font-size: 14px; line-height: 1.55;
+  color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line-strong); border-radius: 7px; padding: 8px 10px;
+}
+
+/* ---------- States ---------- */
+.empty {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 26px; margin-top: 18px;
+}
+.empty h2 { font-family: var(--serif); font-size: 19px; margin: 0 0 8px; }
+.empty p { color: var(--ink-2); margin: 0 0 12px; max-width: 62ch; }
+.empty ol { color: var(--ink-2); margin: 0; padding-left: 20px; max-width: 62ch; }
+.empty li { margin-bottom: 7px; }
+.empty code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px;
+  background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: 4px; padding: 1px 5px;
+}
+.none { color: var(--ink-3); text-align: center; padding: 34px 16px; font-size: 14px; }
+.sr {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+
+@media (max-width: 860px) {
+  .cols { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .side { position: static; }
+  .head { grid-template-columns: 46px minmax(0,1fr); gap: 11px; }
+  .bars { grid-column: 1 / -1; height: 24px; }
+  .sub .dim { max-width: 100%; }
+  .brand { width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-in">
+    <div class="brand"><span class="dot"></span><h1>arXiv Radar</h1></div>
+    <span class="meta" id="meta"></span>
+    <button class="btn" id="btn-export" type="button">Notlarımı dışa aktar</button>
+    <button class="btn" id="btn-import" type="button">Yedeği geri yükle</button>
+    <button class="btn" id="btn-theme" type="button" aria-live="polite">Tema</button>
+    <input type="file" id="file-import" accept="application/json,.json" class="sr" tabindex="-1" aria-hidden="true">
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="banner" id="banner" hidden></div>
+
+  <section class="empty" id="setup" hidden>
+    <h2>Henüz tarama verisi yok</h2>
+    <p><code>data/index.json</code> bulunamadı. Bu dosyayı tarama iş akışı üretir. Kurulumu tamamlamak için:</p>
+    <ol>
+      <li>Depo ayarlarında <b>Settings → Secrets and variables → Actions</b> bölümüne <code>TYPESAFE_API_KEY</code> secret'ını ekleyin.</li>
+      <li><b>Settings → Pages → Source</b> ayarını <b>GitHub Actions</b> olarak seçin.</li>
+      <li><b>Actions → arXiv Radar → Run workflow</b> ile <code>limit = 3</code> vererek ilk taramayı ucuza çalıştırın.</li>
+      <li>İş akışı bittiğinde bu sayfa kendiliğinden dolar. Sonrasında hafta içi her sabah 05:00 UTC'de otomatik çalışır.</li>
+    </ol>
+  </section>
+
+  <div class="cols" id="app" hidden>
+    <aside class="side">
+      <div class="panel">
+        <h2>Filtreler</h2>
+        <div class="field">
+          <label for="f-search">Ara</label>
+          <input type="search" id="f-search" placeholder="başlık, özet, yazar" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="f-topic">Konu</label>
+          <select id="f-topic"><option value="">Tüm konular</option></select>
+        </div>
+        <div class="field">
+          <label for="f-status">Durum</label>
+          <select id="f-status">
+            <option value="all">Hepsi (atlananlar hariç)</option>
+            <option value="new">Yeni</option>
+            <option value="todo">Okunacak</option>
+            <option value="star">Önemli</option>
+            <option value="done">Okundu</option>
+            <option value="skip">Atlandı</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Ağırlıklar</h2>
+        <div id="weights"></div>
+        <button class="btn" id="btn-reset-w" type="button" style="width:100%;margin-top:4px">Varsayılana dön</button>
+      </div>
+    </aside>
+
+    <main>
+      <div class="toolbar">
+        <span class="count" id="count"></span>
+        <button class="btn" id="btn-more" type="button" hidden>Daha eski günleri yükle</button>
+      </div>
+      <div class="list" id="list"></div>
+      <p class="none" id="none" hidden>Bu filtrelerle eşleşen makale yok.</p>
+      <p class="sr" id="live" role="status" aria-live="polite"></p>
+    </main>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ------------------------------------------------------------------ *
+   * Ayarlar
+   * ------------------------------------------------------------------ */
+  var INITIAL_DAYS = 14;              // Acilista yuklenen gun sayisi
+  var MORE_DAYS = 14;                 // "Daha eski" her basista eklenen gun
+  var TIER_READ = 70;                 // "Mutlaka oku" esigi
+  var TIER_SKIM = 50;                 // "Goz at" esigi
+
+  var SIGNALS = [
+    { key: "novelty",   label: "Yenilik",   weight: 0.30, negative: false },
+    { key: "evidence",  label: "Kanıt",     weight: 0.20, negative: false },
+    { key: "practical", label: "Uygulanır", weight: 0.30, negative: false },
+    { key: "relevance", label: "İlgili",    weight: 0.20, negative: false },
+    { key: "code",      label: "Kod var",   weight: 0.10, negative: false },
+    { key: "hype",      label: "Abartı",    weight: 0.30, negative: true  }
+  ];
+
+  var STATUSES = [
+    { key: "new",  label: "Yeni"     },
+    { key: "todo", label: "Okunacak" },
+    { key: "star", label: "Önemli"   },
+    { key: "done", label: "Okundu"   },
+    { key: "skip", label: "Atlandı"  }
+  ];
+
+  var KEY_STATUS = "radar.statuses";
+  var KEY_NOTES = "radar.notes";
+  var KEY_WEIGHTS = "radar.weights";
+  var KEY_THEME = "radar.theme";
+
+  /* ------------------------------------------------------------------ *
+   * Kalici kayit -- localStorage her zaman try/catch icinde.
+   * Depolama kapaliysa sayfa bellekte calismaya devam eder.
+   * ------------------------------------------------------------------ */
+  function readStore(key, fallback) {
+    try {
+      var raw = window.localStorage.getItem(key);
+      if (!raw) return fallback;
+      var parsed = JSON.parse(raw);
+      if (parsed === null || typeof parsed !== "object") return fallback;
+      return parsed;
+    } catch (err) {
+      return fallback;
+    }
+  }
+  function writeStore(key, value) {
+    try { window.localStorage.setItem(key, JSON.stringify(value)); } catch (err) { /* yok say */ }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Durum
+   * ------------------------------------------------------------------ */
+  var papers = [];                 // yuklenen tum makaleler
+  var seen = Object.create(null);  // id -> true (ayni makale iki kez eklenmesin)
+  var rows = Object.create(null);  // id -> { card, ... } kalici DOM dugumleri
+  var statuses = readStore(KEY_STATUS, {});
+  var notes = readStore(KEY_NOTES, {});
+  var weights = normalizeWeights(readStore(KEY_WEIGHTS, {}));
+  var indexFiles = [];
+  var loadedCount = 0;
+  var expanded = null;
+  var demo = false;
+  var noteTimer = null;
+
+  var el = {
+    meta: document.getElementById("meta"),
+    banner: document.getElementById("banner"),
+    setup: document.getElementById("setup"),
+    app: document.getElementById("app"),
+    list: document.getElementById("list"),
+    none: document.getElementById("none"),
+    count: document.getElementById("count"),
+    live: document.getElementById("live"),
+    more: document.getElementById("btn-more"),
+    weights: document.getElementById("weights"),
+    search: document.getElementById("f-search"),
+    topic: document.getElementById("f-topic"),
+    status: document.getElementById("f-status"),
+    file: document.getElementById("file-import")
+  };
+
+  function normalizeWeights(saved) {
+    var out = {};
+    for (var i = 0; i < SIGNALS.length; i++) {
+      var s = SIGNALS[i];
+      var v = saved && typeof saved[s.key] === "number" && isFinite(saved[s.key])
+        ? saved[s.key] : s.weight;
+      out[s.key] = Math.min(1, Math.max(0, v));
+    }
+    return out;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Puan
+   *   (Sigma pozitif_agirlik x sinyal - hype_agirligi x hype)
+   *   / Sigma pozitif_agirlik, 0-100 arasina sikistirilir.
+   * ------------------------------------------------------------------ */
+  function scoreOf(paper) {
+    var sig = paper.signals || {};
+    var positive = 0, total = 0, penalty = 0;
+    for (var i = 0; i < SIGNALS.length; i++) {
+      var s = SIGNALS[i];
+      var w = weights[s.key];
+      var v = typeof sig[s.key] === "number" && isFinite(sig[s.key]) ? sig[s.key] : 0;
+      v = Math.min(1, Math.max(0, v));
+      if (s.negative) { penalty += w * v; } else { total += w; positive += w * v; }
+    }
+    if (total <= 0) return 0;
+    return Math.max(0, Math.min(100, ((positive - penalty) / total) * 100));
+  }
+
+  function tierOf(score) {
+    if (score >= TIER_READ) return { cls: "tier-read", label: "Mutlaka oku" };
+    if (score >= TIER_SKIM) return { cls: "tier-skim", label: "Göz at" };
+    return { cls: "tier-none", label: "" };
+  }
+
+  function statusOf(id) {
+    var value = statuses[id];
+    for (var i = 0; i < STATUSES.length; i++) {
+      if (STATUSES[i].key === value) return value;
+    }
+    return "new";
+  }
+  function statusLabel(key) {
+    for (var i = 0; i < STATUSES.length; i++) {
+      if (STATUSES[i].key === key) return STATUSES[i].label;
+    }
+    return "Yeni";
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Guvenli DOM yardimcilari -- veriden gelen hicbir metin HTML olarak
+   * yorumlanmaz, her zaman textContent ile yazilir.
+   * ------------------------------------------------------------------ */
+  function make(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined && text !== null) node.textContent = String(text);
+    return node;
+  }
+
+  // Yalnizca http/https adresleri baglantiya cevrilir.
+  function safeUrl(value) {
+    if (typeof value !== "string" || !value) return null;
+    try {
+      var url = new URL(value, window.location.href);
+      if (url.protocol === "http:" || url.protocol === "https:") return url.href;
+    } catch (err) { /* gecersiz adres */ }
+    return null;
+  }
+
+  function str(value) { return typeof value === "string" ? value : ""; }
+
+  function formatDate(iso) {
+    if (!iso) return "";
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    try {
+      return d.toLocaleString("tr-TR", {
+        day: "numeric", month: "long", hour: "2-digit", minute: "2-digit"
+      });
+    } catch (err) {
+      return d.toISOString().slice(0, 16).replace("T", " ");
+    }
+  }
+  function formatDay(iso) {
+    if (!iso) return "";
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    try { return d.toLocaleDateString("tr-TR", { day: "numeric", month: "short" }); }
+    catch (err) { return d.toISOString().slice(0, 10); }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Veri yukleme -- yalnizca kendi data/ dosyalarimiz, harici API yok.
+   * Yollar goreli; site /<repo>/ altinda da calisir.
+   * ------------------------------------------------------------------ */
+  function getJSON(path) {
+    return fetch(path, { cache: "no-cache" }).then(function (response) {
+      if (!response.ok) throw new Error(path + ": HTTP " + response.status);
+      return response.json();
+    });
+  }
+
+  function addPapers(payload) {
+    if (!payload || !Array.isArray(payload.papers)) return 0;
+    if (payload.demo === true) demo = true;
+    var added = 0;
+    for (var i = 0; i < payload.papers.length; i++) {
+      var paper = payload.papers[i];
+      if (!paper || typeof paper !== "object") continue;
+      var id = str(paper.id);
+      if (!id || seen[id]) continue;   // ayni ID tekrar eklenmez
+      seen[id] = true;
+      papers.push(paper);
+      added++;
+    }
+    return added;
+  }
+
+  function loadNextDays(count) {
+    var slice = indexFiles.slice(loadedCount, loadedCount + count);
+    loadedCount += slice.length;
+    if (!slice.length) return Promise.resolve(0);
+
+    return Promise.all(slice.map(function (entry) {
+      var path = str(entry && entry.path);
+      if (!path || path.indexOf("..") !== -1 || /^[a-z]+:/i.test(path)) {
+        return Promise.resolve(null);
+      }
+      return getJSON(path).catch(function (err) {
+        if (window.console) console.warn("Gün dosyası atlandı:", err.message);
+        return null;
+      });
+    })).then(function (payloads) {
+      var added = 0;
+      for (var i = 0; i < payloads.length; i++) added += addPapers(payloads[i]);
+      return added;
+    });
+  }
+
+  function start() {
+    getJSON("data/index.json").then(function (index) {
+      indexFiles = Array.isArray(index && index.files) ? index.files : [];
+      el.app.hidden = false;
+      buildWeightPanel();
+      bindChrome();
+      return loadNextDays(INITIAL_DAYS).then(function () {
+        buildTopicOptions();
+        renderAll();
+        updateMeta(index);
+        updateMoreButton();
+      });
+    }).catch(function () {
+      el.setup.hidden = false;      // index.json yok -> kurulum ekrani
+      el.app.hidden = true;
+      bindThemeOnly();
+    });
+  }
+
+  function updateMeta(index) {
+    var parts = [];
+    var when = formatDate(str(index && index.updated_at));
+    if (when) parts.push("Son tarama: " + when);
+    parts.push(papers.length + " makale");
+    el.meta.textContent = parts.join("  ·  ");
+
+    if (demo) {
+      el.banner.hidden = false;
+      el.banner.textContent = "";
+      el.banner.appendChild(make("b", null, "Deneme verisi. "));
+      el.banner.appendChild(document.createTextNode(
+        "Bu sayfadaki sinyaller --mock ile üretildi, Jev değerlendirmesi değil. " +
+        "Gerçek tarama çalıştığında bu uyarı kaybolur."
+      ));
+    } else {
+      el.banner.hidden = true;
+    }
+  }
+
+  function updateMoreButton() {
+    var remaining = indexFiles.length - loadedCount;
+    el.more.hidden = remaining <= 0;
+    if (remaining > 0) {
+      el.more.textContent = "Daha eski günleri yükle (" + remaining + " gün)";
+    }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Kenar cubugu
+   * ------------------------------------------------------------------ */
+  function buildWeightPanel() {
+    el.weights.textContent = "";
+    SIGNALS.forEach(function (s) {
+      var row = make("div", "w-row" + (s.negative ? " neg" : ""));
+      var id = "w-" + s.key;
+
+      var label = make("label", null, s.label + (s.negative ? " (eksi)" : ""));
+      label.htmlFor = id;
+
+      var value = make("span", "val", weights[s.key].toFixed(2));
+
+      var range = document.createElement("input");
+      range.type = "range";
+      range.id = id;
+      range.min = "0"; range.max = "1"; range.step = "0.05";
+      range.value = String(weights[s.key]);
+
+      range.addEventListener("input", function () {
+        weights[s.key] = parseFloat(range.value);
+        value.textContent = weights[s.key].toFixed(2);
+        writeStore(KEY_WEIGHTS, weights);
+        renderAll();           // kaydirici oynadikca liste aninda yeniden siralanir
+      });
+
+      row.appendChild(label);
+      row.appendChild(value);
+      row.appendChild(range);
+      el.weights.appendChild(row);
+    });
+  }
+
+  function buildTopicOptions() {
+    var names = {};
+    for (var i = 0; i < papers.length; i++) {
+      var topic = str(papers[i].topic);
+      if (topic) names[topic] = true;
+    }
+    var sorted = Object.keys(names).sort();
+    while (el.topic.options.length > 1) el.topic.remove(1);
+    sorted.forEach(function (name) {
+      var option = document.createElement("option");
+      option.value = name;
+      option.textContent = name;     // textContent: veriden gelen ad kacislanir
+      el.topic.appendChild(option);
+    });
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Satirlar -- her makale icin DOM dugumu bir kez uretilir ve saklanir.
+   * Yeniden siralama sadece dugumleri tasir, bu yuzden acik detay paneli
+   * ve not alanindaki odak kaybolmaz.
+   * ------------------------------------------------------------------ */
+  function buildRow(paper) {
+    var id = str(paper.id);
+    var card = make("article", "card");
+
+    var head = make("button", "head");
+    head.type = "button";
+    head.setAttribute("aria-expanded", "false");
+
+    var score = make("div", "score");
+    var scoreValue = make("span", null, "0");
+    var scoreTier = make("small", null, "");
+    score.appendChild(scoreValue);
+    score.appendChild(scoreTier);
+
+    var middle = make("div");
+    middle.appendChild(make("h3", "title", str(paper.title) || "(başlıksız)"));
+
+    var sub = make("div", "sub");
+    var statusTag = make("span", "st-tag", "");
+    var topicPill = make("span", "pill", str(paper.topic) || "Other");
+    var dayText = make("span", null, formatDay(str(paper.published)));
+    var authors = Array.isArray(paper.authors) ? paper.authors.filter(function (a) {
+      return typeof a === "string";
+    }) : [];
+    var authorText = make("span", "dim", authors.join(", "));
+    sub.appendChild(statusTag);
+    sub.appendChild(topicPill);
+    if (dayText.textContent) sub.appendChild(dayText);
+    if (authorText.textContent) sub.appendChild(authorText);
+    middle.appendChild(sub);
+
+    var bars = make("div", "bars");
+    var barNodes = {};
+    SIGNALS.forEach(function (s) {
+      var bar = make("i", s.negative ? "hype" : null);
+      var v = paper.signals && typeof paper.signals[s.key] === "number"
+        ? Math.min(1, Math.max(0, paper.signals[s.key])) : 0;
+      bar.style.height = (3 + v * 25).toFixed(1) + "px";
+      bar.title = s.label + ": " + Math.round(v * 100) + "%";
+      barNodes[s.key] = bar;
+      bars.appendChild(bar);
+    });
+    bars.setAttribute("aria-hidden", "true");
+
+    head.appendChild(score);
+    head.appendChild(middle);
+    head.appendChild(bars);
+    card.appendChild(head);
+
+    head.addEventListener("click", function () { toggle(id); });
+
+    var row = {
+      card: card, head: head, score: score,
+      scoreValue: scoreValue, scoreTier: scoreTier,
+      statusTag: statusTag, detail: null, paper: paper
+    };
+    rows[id] = row;
+    return row;
+  }
+
+  function buildDetail(paper) {
+    var id = str(paper.id);
+    var detail = make("div", "detail");
+
+    var abstract = str(paper.abstract);
+    if (abstract) detail.appendChild(make("p", "abstract", abstract));
+
+    var grid = make("div", "sig-grid");
+    SIGNALS.forEach(function (s) {
+      var v = paper.signals && typeof paper.signals[s.key] === "number"
+        ? Math.min(1, Math.max(0, paper.signals[s.key])) : 0;
+      var box = make("div", "sig" + (s.negative ? " neg" : ""));
+      box.appendChild(make("div", "k", s.label));
+      box.appendChild(make("div", "v", Math.round(v * 100) + "%"));
+      var track = make("div", "track");
+      var fill = make("div", "fill");
+      fill.style.width = (v * 100).toFixed(1) + "%";
+      track.appendChild(fill);
+      box.appendChild(track);
+      grid.appendChild(box);
+    });
+    detail.appendChild(grid);
+
+    var acts = make("div", "acts");
+    STATUSES.forEach(function (s) {
+      var chip = make("button", "chip", s.label);
+      chip.type = "button";
+      chip.setAttribute("aria-pressed", statusOf(id) === s.key ? "true" : "false");
+      chip.addEventListener("click", function () {
+        statuses[id] = s.key;
+        writeStore(KEY_STATUS, statuses);
+        var buttons = acts.querySelectorAll(".chip");
+        for (var i = 0; i < buttons.length; i++) {
+          buttons[i].setAttribute("aria-pressed", String(buttons[i] === chip));
+        }
+        renderAll();
+      });
+      acts.appendChild(chip);
+    });
+
+    acts.appendChild(make("span", "sep"));
+
+    var abs = safeUrl(paper.url);
+    if (abs) {
+      var absLink = make("a", "link", "arXiv");
+      absLink.href = abs; absLink.target = "_blank"; absLink.rel = "noopener noreferrer";
+      acts.appendChild(absLink);
+    }
+    var pdf = safeUrl(paper.pdf);
+    if (pdf) {
+      var pdfLink = make("a", "link", "PDF");
+      pdfLink.href = pdf; pdfLink.target = "_blank"; pdfLink.rel = "noopener noreferrer";
+      acts.appendChild(pdfLink);
+    }
+    detail.appendChild(acts);
+
+    var noteId = "note-" + id.replace(/[^\w.-]/g, "_");
+    var noteLabel = make("label", "note-label", "Notum");
+    noteLabel.htmlFor = noteId;
+    detail.appendChild(noteLabel);
+
+    var note = document.createElement("textarea");
+    note.className = "note";
+    note.id = noteId;
+    note.value = typeof notes[id] === "string" ? notes[id] : "";
+    note.placeholder = "Bu makale hakkında not…";
+    // Yazarken yeniden render etmiyoruz; sadece kaydediyoruz, boylece odak korunur.
+    note.addEventListener("input", function () {
+      notes[id] = note.value;
+      if (noteTimer) clearTimeout(noteTimer);
+      noteTimer = setTimeout(function () { writeStore(KEY_NOTES, notes); }, 250);
+    });
+    note.addEventListener("blur", function () { writeStore(KEY_NOTES, notes); });
+    detail.appendChild(note);
+
+    return detail;
+  }
+
+  function toggle(id) {
+    var row = rows[id];
+    if (!row) return;
+    if (expanded === id) {
+      closeDetail(row);
+      expanded = null;
+      return;
+    }
+    if (expanded && rows[expanded]) closeDetail(rows[expanded]);
+    if (!row.detail) row.detail = buildDetail(row.paper);
+    row.card.appendChild(row.detail);
+    row.card.classList.add("is-open");
+    row.head.setAttribute("aria-expanded", "true");
+    expanded = id;
+  }
+
+  function closeDetail(row) {
+    if (row.detail && row.detail.parentNode === row.card) {
+      writeStore(KEY_NOTES, notes);
+      row.card.removeChild(row.detail);
+    }
+    row.card.classList.remove("is-open");
+    row.head.setAttribute("aria-expanded", "false");
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Filtre + siralama + FLIP
+   * ------------------------------------------------------------------ */
+  function visiblePapers() {
+    var query = el.search.value.trim().toLocaleLowerCase("tr");
+    var topic = el.topic.value;
+    var status = el.status.value;
+
+    return papers.filter(function (paper) {
+      var id = str(paper.id);
+      var own = statusOf(id);
+
+      if (status === "all") {
+        if (own === "skip") return false;          // "Hepsi"de atlananlar gizli
+      } else if (own !== status) {
+        return false;
+      }
+
+      if (topic && str(paper.topic) !== topic) return false;
+
+      if (query) {
+        var hay = [
+          str(paper.title),
+          str(paper.abstract),
+          Array.isArray(paper.authors) ? paper.authors.join(" ") : ""
+        ].join(" ").toLocaleLowerCase("tr");
+        if (hay.indexOf(query) === -1) return false;
+      }
+      return true;
+    });
+  }
+
+  function renderAll() {
+    var shown = visiblePapers();
+    shown.forEach(function (paper) { paper._score = scoreOf(paper); });
+    shown.sort(function (a, b) {
+      if (b._score !== a._score) return b._score - a._score;
+      return str(b.published).localeCompare(str(a.published));
+    });
+
+    var reduce = window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // FLIP: once mevcut konumlari olc
+    var before = Object.create(null);
+    if (!reduce) {
+      for (var id in rows) {
+        var card = rows[id].card;
+        if (card.parentNode === el.list) {
+          before[id] = card.getBoundingClientRect().top;
+        }
+      }
+    }
+
+    var fragment = document.createDocumentFragment();
+    var wanted = Object.create(null);
+
+    shown.forEach(function (paper) {
+      var id = str(paper.id);
+      wanted[id] = true;
+      var row = rows[id] || buildRow(paper);
+      paintRow(row, paper);
+      fragment.appendChild(row.card);       // appendChild ayni dugumu tasir
+    });
+
+    // Filtrenin disinda kalanlari cikar (dugumler saklanir, tekrar kullanilir)
+    for (var key in rows) {
+      if (!wanted[key] && rows[key].card.parentNode === el.list) {
+        el.list.removeChild(rows[key].card);
+      }
+    }
+    el.list.appendChild(fragment);
+
+    // FLIP: yeni konumlari olc ve farki geri oynat
+    if (!reduce) {
+      var moved = [];
+      for (var id2 in before) {
+        var r = rows[id2];
+        if (!r || r.card.parentNode !== el.list) continue;
+        var delta = before[id2] - r.card.getBoundingClientRect().top;
+        if (delta) moved.push([r.card, delta]);
+      }
+      if (moved.length) {
+        moved.forEach(function (pair) {
+          pair[0].classList.remove("flip");
+          pair[0].style.transform = "translateY(" + pair[1] + "px)";
+        });
+        void el.list.offsetHeight;                       // reflow
+        requestAnimationFrame(function () {
+          moved.forEach(function (pair) {
+            pair[0].classList.add("flip");
+            pair[0].style.transform = "";
+          });
+        });
+      }
+    }
+
+    el.none.hidden = shown.length > 0;
+    el.count.textContent = shown.length + " / " + papers.length + " makale";
+    el.live.textContent = shown.length + " makale listeleniyor.";
+  }
+
+  function paintRow(row, paper) {
+    var id = str(paper.id);
+    var score = Math.round(paper._score);
+    var tier = tierOf(paper._score);
+    row.scoreValue.textContent = String(score);
+    row.scoreTier.textContent = tier.label;
+    row.score.className = "score " + tier.cls;
+
+    var status = statusOf(id);
+    row.statusTag.textContent = status === "new" ? "" : statusLabel(status);
+    row.statusTag.hidden = status === "new";
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Yedekleme
+   * ------------------------------------------------------------------ */
+  function exportBackup() {
+    var payload = {
+      format: "arxiv-radar-backup/1",
+      exported_at: new Date().toISOString(),
+      statuses: statuses,
+      notes: notes,
+      weights: weights
+    };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement("a");
+    link.href = url;
+    link.download = "arxiv-radar-notlar-" + new Date().toISOString().slice(0, 10) + ".json";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  function importBackup(file) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      var data;
+      try {
+        data = JSON.parse(String(reader.result));
+      } catch (err) {
+        window.alert("Yedek dosyası okunamadı: geçerli bir JSON değil.");
+        return;
+      }
+      if (!data || typeof data !== "object") {
+        window.alert("Yedek dosyası tanınmadı.");
+        return;
+      }
+      if (!window.confirm("Yedekteki durumlar ve notlar mevcutların üzerine yazılsın mı?")) return;
+
+      if (data.statuses && typeof data.statuses === "object") {
+        for (var a in data.statuses) {
+          if (typeof data.statuses[a] === "string") statuses[a] = data.statuses[a];
+        }
+      }
+      if (data.notes && typeof data.notes === "object") {
+        for (var b in data.notes) {
+          if (typeof data.notes[b] === "string") notes[b] = data.notes[b];
+        }
+      }
+      if (data.weights && typeof data.weights === "object") {
+        weights = normalizeWeights(data.weights);
+      }
+      writeStore(KEY_STATUS, statuses);
+      writeStore(KEY_NOTES, notes);
+      writeStore(KEY_WEIGHTS, weights);
+
+      // Acik detaylar eski degerleri gostermesin diye yeniden uretilsin.
+      for (var id in rows) { closeDetail(rows[id]); rows[id].detail = null; }
+      expanded = null;
+
+      buildWeightPanel();
+      renderAll();
+      window.alert("Yedek geri yüklendi.");
+    };
+    reader.onerror = function () { window.alert("Dosya okunamadı."); };
+    reader.readAsText(file);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Tema
+   * ------------------------------------------------------------------ */
+  var THEMES = ["auto", "light", "dark"];
+  var THEME_LABELS = { auto: "Tema: otomatik", light: "Tema: açık", dark: "Tema: koyu" };
+
+  function applyTheme(name) {
+    document.documentElement.setAttribute("data-theme", name);
+    document.getElementById("btn-theme").textContent = THEME_LABELS[name] || THEME_LABELS.auto;
+  }
+
+  function currentTheme() {
+    var saved = readStore(KEY_THEME, null);
+    var name = saved && typeof saved.value === "string" ? saved.value : "auto";
+    return THEMES.indexOf(name) === -1 ? "auto" : name;
+  }
+
+  function bindThemeOnly() {
+    var theme = currentTheme();
+    applyTheme(theme);
+    document.getElementById("btn-theme").addEventListener("click", function () {
+      theme = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
+      applyTheme(theme);
+      writeStore(KEY_THEME, { value: theme });
+    });
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Olaylar
+   * ------------------------------------------------------------------ */
+  function bindChrome() {
+    var debounce = null;
+    el.search.addEventListener("input", function () {
+      if (debounce) clearTimeout(debounce);
+      debounce = setTimeout(renderAll, 120);
+    });
+    el.topic.addEventListener("change", renderAll);
+    el.status.addEventListener("change", renderAll);
+
+    el.more.addEventListener("click", function () {
+      el.more.disabled = true;
+      el.more.textContent = "Yükleniyor…";
+      loadNextDays(MORE_DAYS).then(function () {
+        el.more.disabled = false;
+        buildTopicOptions();
+        renderAll();
+        el.meta.textContent = el.meta.textContent.replace(/\d+ makale/, papers.length + " makale");
+        updateMoreButton();
+      });
+    });
+
+    document.getElementById("btn-reset-w").addEventListener("click", function () {
+      weights = normalizeWeights({});
+      writeStore(KEY_WEIGHTS, weights);
+      buildWeightPanel();
+      renderAll();
+    });
+
+    document.getElementById("btn-export").addEventListener("click", exportBackup);
+    document.getElementById("btn-import").addEventListener("click", function () {
+      el.file.click();
+    });
+    el.file.addEventListener("change", function () {
+      if (el.file.files && el.file.files[0]) importBackup(el.file.files[0]);
+      el.file.value = "";
+    });
+  }
+
+  bindThemeOnly();
+  start();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+name: arXiv Radar
+
+on:
+  schedule:
+    # Hafta içi her sabah 05:00 UTC.
+    - cron: "0 5 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "En fazla kaç makale değerlendirilsin (ilk deneme için 3)"
+        required: false
+        type: string
+        default: ""
+      mock:
+        description: "API çağrısı yapmadan sahte veri üret"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+# Aynı anda tek çalışma. İptal etmiyoruz: tarama ortasında kesilirse
+# commit ile deploy arasında yarım iş kalabilir.
+concurrency:
+  group: arxiv-radar
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    name: Tara ve veriyi işle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Depoyu al
+        uses: actions/checkout@v4
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Birim testleri
+        run: python -m unittest discover -s tests -v
+
+      - name: arXiv taraması
+        env:
+          # Anahtar yalnızca bu adımın ortamında bulunur; loglara, JSON
+          # çıktısına veya siteye hiçbir şekilde yazılmaz.
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+          RADAR_LIMIT: ${{ inputs.limit }}
+          RADAR_MOCK: ${{ inputs.mock }}
+        run: |
+          args=""
+          if [ -n "$RADAR_LIMIT" ]; then
+            args="$args --limit $RADAR_LIMIT"
+          fi
+          if [ "$RADAR_MOCK" = "true" ]; then
+            args="$args --mock"
+          fi
+          python pipeline/radar.py $args
+
+      - name: Değişiklikleri commit et
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Yalnızca veri klasörü commit edilir; başka hiçbir dosya değil.
+          git add --all site/data
+
+          if git diff --cached --quiet; then
+            echo "Yeni veri yok, commit atlandı."
+            exit 0
+          fi
+
+          git commit -m "radar: $(date -u +%Y-%m-%d) taraması"
+
+          # Eşzamanlı bir push araya girerse yeniden dene.
+          for attempt in 1 2 3 4 5; do
+            if git push; then
+              echo "Push başarılı."
+              exit 0
+            fi
+            echo "Push başarısız (deneme $attempt), rebase ile tekrar deneniyor…"
+            sleep $((attempt * 2))
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+          done
+
+          echo "Push 5 denemede başarısız oldu." >&2
+          exit 1
+
+      - name: Pages yapılandırması
+        uses: actions/configure-pages@v5
+
+      - name: site/ klasörünü artifact olarak yükle
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    name: GitHub Pages'e yayınla
+    needs: scan
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Yayınla
+        id: deployment
+        uses: actions/deploy-pages@v4

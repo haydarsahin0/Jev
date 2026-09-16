@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:arxiv="http://arxiv.org/schemas/atom">
+  <link href="http://arxiv.org/api/query" rel="self" type="application/atom+xml"/>
+  <title type="html">ArXiv Query: search_query=cat:cs.AI</title>
+  <id>http://arxiv.org/api/aBcDeF</id>
+  <updated>2026-09-16T00:00:00-04:00</updated>
+  <opensearch:totalResults xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">3</opensearch:totalResults>
+
+  <entry>
+    <id>http://arxiv.org/abs/2609.01234v1</id>
+    <updated>2026-09-16T05:30:00Z</updated>
+    <published>2026-09-16T05:30:00Z</published>
+    <title>Tool-Calling Agents with
+      Verified Retrieval</title>
+    <summary>  We present a scheduler for LLM tool calls that verifies every retrieval
+step against a typed contract. Code and models are released publicly.
+</summary>
+    <author><name>Ada Lovelace</name></author>
+    <author><name>Grace Hopper</name></author>
+    <author><name>Alan Turing</name></author>
+    <author><name>Barbara Liskov</name></author>
+    <author><name>Edsger Dijkstra</name></author>
+    <author><name>Donald Knuth</name></author>
+    <author><name>Katherine Johnson</name></author>
+    <arxiv:primary_category xmlns:arxiv="http://arxiv.org/schemas/atom" term="cs.AI"/>
+    <link href="http://arxiv.org/abs/2609.01234v1" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/2609.01234v1" rel="related" type="application/pdf"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+
+  <entry>
+    <id>http://arxiv.org/abs/2609.00987v2</id>
+    <updated>2026-09-15T12:00:00Z</updated>
+    <published>2026-09-15T09:15:00Z</published>
+    <title>A Small Tweak to Speech Tokenizers</title>
+    <summary>We re-benchmark an existing speech tokenizer with a modified stride.</summary>
+    <author><name>Rosalind Franklin</name></author>
+    <arxiv:primary_category xmlns:arxiv="http://arxiv.org/schemas/atom" term="cs.SD"/>
+    <link href="http://arxiv.org/abs/2609.00987v2" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/2609.00987v2" rel="related" type="application/pdf"/>
+    <category term="cs.SD" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+
+  <entry>
+    <id>http://arxiv.org/abs/2608.55555v1</id>
+    <updated>2026-08-20T08:00:00Z</updated>
+    <published>2026-08-20T08:00:00Z</published>
+    <title>An Older Paper Outside the Window</title>
+    <summary>This one is far older than forty-eight hours.</summary>
+    <author><name>Claude Shannon</name></author>
+    <arxiv:primary_category xmlns:arxiv="http://arxiv.org/schemas/atom" term="cs.LG"/>
+    <link href="http://arxiv.org/abs/2608.55555v1" rel="alternate" type="text/html"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+</feed>
