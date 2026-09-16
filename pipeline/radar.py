@@ -49,13 +49,15 @@ ARXIV_HEADERS = {
     "User-Agent": USER_AGENT,
     "Accept": "application/atom+xml,text/xml;q=0.9,*/*;q=0.8",
 }
-ARXIV_ATTEMPTS = 3         # Gecici arXiv hatalarinda toplam deneme
+ARXIV_ATTEMPTS = 5         # Gecici arXiv hatalarinda toplam deneme
 ARXIV_RETRY_WAIT = 3.0     # arXiv kurallari geregi denemeler arasi en az bekleme
 # arXiv yuk altinda 429 yerine 406 Not Acceptable dondurebiliyor: olcumlerde
 # tek basina calisan bir kategori sorgusu ayni kosu icinde 406 verdi. Bu
 # yuzden 406 da gecici kabul edilip yeniden deneniyor.
 ARXIV_RETRY_CODES = (406, 429)
-ARXIV_MAX_PAGES = 8        # Kategori basina en fazla kac sayfa cekilir
+ARXIV_MAX_PAGES = 4        # Kategori basina en fazla kac sayfa cekilir
+ARXIV_PAGE_SIZE_WIDE = 300 # Genis pencerede sayfa boyutu (daha az istek)
+ARXIV_DELAY_WIDE = 12.0    # Genis pencerede istekler arasi bekleme
 
 TYPESAFE_ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 TYPESAFE_MODEL = "jev-latest"
@@ -182,7 +184,8 @@ def build_arxiv_url(category, max_results=MAX_RESULTS, start=0):
     return ARXIV_ENDPOINT + "?" + query
 
 
-def fetch_category(category, since=None, sleep=time.sleep, max_pages=ARXIV_MAX_PAGES):
+def fetch_category(category, since=None, sleep=time.sleep, max_pages=ARXIV_MAX_PAGES,
+                   page_size=MAX_RESULTS, delay=ARXIV_RETRY_WAIT):
     """Tek kategoriyi ceker; `since` verilirse o tarihe inene kadar sayfalar.
 
     arXiv en yeniden eskiye siralar, bu yuzden bir sayfanin en eski kaydi
@@ -193,8 +196,8 @@ def fetch_category(category, since=None, sleep=time.sleep, max_pages=ARXIV_MAX_P
 
     for page in range(pages):
         if page:
-            sleep(ARXIV_RETRY_WAIT)
-        url = build_arxiv_url(category, start=page * MAX_RESULTS)
+            sleep(delay)
+        url = build_arxiv_url(category, max_results=page_size, start=page * page_size)
         batch = parse_atom(fetch_arxiv(url, sleep=sleep))
         if not batch:
             break
@@ -205,7 +208,8 @@ def fetch_category(category, since=None, sleep=time.sleep, max_pages=ARXIV_MAX_P
     return entries
 
 
-def fetch_categories(categories=CATEGORIES, since=None, sleep=time.sleep):
+def fetch_categories(categories=CATEGORIES, since=None, sleep=time.sleep,
+                     page_size=MAX_RESULTS, delay=ARXIV_RETRY_WAIT):
     """Her kategoriyi ayri istekle ceker, birlestirir ve ID'ye gore tekillestirir.
 
     Istekler arasinda arXiv'in istedigi gibi beklenir. Bir kategori basarisiz
@@ -217,9 +221,10 @@ def fetch_categories(categories=CATEGORIES, since=None, sleep=time.sleep):
 
     for index, category in enumerate(categories):
         if index:
-            sleep(ARXIV_RETRY_WAIT)
+            sleep(delay)
         try:
-            entries = fetch_category(category, since=since, sleep=sleep)
+            entries = fetch_category(category, since=since, sleep=sleep,
+                                     page_size=page_size, delay=delay)
         except Exception as error:
             errors.append((category, error))
             log("  ! %s alinamadi: %s" % (category, error))
@@ -256,7 +261,9 @@ def fetch_arxiv(url, timeout=60, attempts=ARXIV_ATTEMPTS, sleep=time.sleep):
             last_error = "HTTP Error %s: %s" % (error.code, error.reason)
             if not (error.code in ARXIV_RETRY_CODES or 500 <= error.code < 600):
                 raise RuntimeError(last_error) from None
-            wait = _parse_retry_after(error.headers) or _retry_delay(attempt)
+            # 406 burada cogu zaman throttle demek; acilmasi icin uzun bekle.
+            wait = (_parse_retry_after(error.headers)
+                    or _retry_delay(attempt, base=4.0, cap=90.0))
         except (urllib.error.URLError, TimeoutError, OSError) as error:
             last_error = "%s: %s" % (type(error).__name__, error)
             wait = _retry_delay(attempt)
@@ -409,11 +416,11 @@ def build_state(paper, reader=READER):
     }
 
 
-def _retry_delay(attempt, retry_after=None):
+def _retry_delay(attempt, retry_after=None, base=2.0, cap=30.0):
     """Ustel geri cekilme + jitter. Retry-After basligi varsa ona uyar."""
     if retry_after is not None:
         return min(float(retry_after), 60.0)
-    return min(2.0 ** attempt, 30.0) + random.uniform(0, 0.5)
+    return min(base ** attempt, cap) + random.uniform(0, 0.5)
 
 
 def _parse_retry_after(headers):
@@ -754,6 +761,11 @@ def parse_args(argv=None):
                         help="Kac saat geriye bakilsin (varsayilan %d)" % WINDOW_HOURS)
     parser.add_argument("--max-papers", type=int, default=MAX_PAPERS,
                         help="Degerlendirilecek en fazla makale (varsayilan %d)" % MAX_PAPERS)
+    parser.add_argument("--page-size", type=int, default=None,
+                        help="arXiv sayfa boyutu (genis pencerede %d kullanilir)"
+                             % ARXIV_PAGE_SIZE_WIDE)
+    parser.add_argument("--request-delay", type=float, default=None,
+                        help="arXiv istekleri arasi bekleme (saniye)")
     parser.add_argument("--harvest", default=None,
                         help="Jev'e hic istek atmadan sadece arXiv ust verisini "
                              "topla ve bu dosyaya yaz (maliyetsiz kesif)")
@@ -793,8 +805,13 @@ def main(argv=None):
         log("arXiv sorgusu (kategori basina ayri istek, son %d saat): %s"
             % (args.window_hours, ", ".join(CATEGORIES)))
         try:
+            wide = args.window_hours > WINDOW_HOURS
+            page_size = args.page_size or (ARXIV_PAGE_SIZE_WIDE if wide else MAX_RESULTS)
+            delay = args.request_delay or (ARXIV_DELAY_WIDE if wide else ARXIV_RETRY_WAIT)
+            log("  sayfa boyutu %d, istekler arasi %.0f sn" % (page_size, delay))
             papers = fetch_categories(
-                since=now - dt.timedelta(hours=args.window_hours))
+                since=now - dt.timedelta(hours=args.window_hours),
+                page_size=page_size, delay=delay)
         except Exception as error:
             log("HATA: arXiv'e ulasilamadi: %s" % error)
             return 1

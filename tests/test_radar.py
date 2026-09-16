@@ -649,10 +649,23 @@ class ArxivFetchTests(unittest.TestCase):
         self.assertGreaterEqual(self.slept[0], radar.ARXIV_RETRY_WAIT)
 
     def test_gives_up_after_attempts(self):
-        ArxivFetchHandler.script = [(503, "busy", None)] * 3
+        ArxivFetchHandler.script = [(503, "busy", None)] * radar.ARXIV_ATTEMPTS
         with self.assertRaises(RuntimeError):
             self.fetch()
-        self.assertEqual(len(ArxivFetchHandler.received), 3)
+        self.assertEqual(len(ArxivFetchHandler.received), radar.ARXIV_ATTEMPTS)
+
+    def test_406_backs_off_harder_than_a_plain_5xx(self):
+        # 406 cogu zaman throttle demek; acilmasi icin daha uzun beklenir.
+        # Ilk denemede ikisi de 3 sn tabanina takilir, fark sonraki denemelerde.
+        for attempt in (1, 2, 3):
+            self.assertGreater(radar._retry_delay(attempt, base=4.0, cap=90.0),
+                               radar._retry_delay(attempt))
+
+    def test_406_retry_waits_grow_across_attempts(self):
+        ArxivFetchHandler.script = [(406, "throttled", None)] * 3 + [(200, "<feed/>", None)]
+        self.fetch()
+        self.assertEqual(len(self.slept), 3)
+        self.assertGreater(self.slept[-1], self.slept[0])
 
     def test_endpoint_is_https(self):
         self.assertTrue(radar.ARXIV_ENDPOINT.startswith("https://"))
