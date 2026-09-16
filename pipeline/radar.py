@@ -41,8 +41,16 @@ RETENTION_DAYS = 60        # Bundan eski gunluk dosyalar silinir
 ABSTRACT_LIMIT = 1500      # Jev'e gonderilen ozetin karakter siniri
 MAX_AUTHORS = 6
 
-ARXIV_ENDPOINT = "http://export.arxiv.org/api/query"
+ARXIV_ENDPOINT = "https://export.arxiv.org/api/query"
 USER_AGENT = "arxiv-radar/1.0 (+https://github.com/haydarsahin0/Jev)"
+# urllib kendiliginden Accept gondermez; arXiv bunu 406 Not Acceptable ile
+# reddeder. Kabul edilen turleri acikca belirtiyoruz.
+ARXIV_HEADERS = {
+    "User-Agent": USER_AGENT,
+    "Accept": "application/atom+xml,text/xml;q=0.9,*/*;q=0.8",
+}
+ARXIV_ATTEMPTS = 3         # Gecici arXiv hatalarinda toplam deneme
+ARXIV_RETRY_WAIT = 3.0     # arXiv kurallari geregi denemeler arasi en az bekleme
 
 TYPESAFE_ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 TYPESAFE_MODEL = "jev-latest"
@@ -164,11 +172,35 @@ def build_arxiv_url(categories=CATEGORIES, max_results=MAX_RESULTS):
     return ARXIV_ENDPOINT + "?" + query
 
 
-def fetch_arxiv(url, timeout=60):
-    """arXiv'e tek bir istek atar. Kurallari geregi User-Agent belirtiriz."""
-    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        return response.read().decode("utf-8", "replace")
+def fetch_arxiv(url, timeout=60, attempts=ARXIV_ATTEMPTS, sleep=time.sleep):
+    """arXiv'den Atom yanitini alir.
+
+    Tarama basina tek bir basarili istek yapilir; yalnizca gecici hatalarda
+    (429/5xx, ag hatasi) yeniden denenir ve denemeler arasinda arXiv'in
+    istedigi gibi en az birkac saniye beklenir.
+    """
+    last_error = None
+    for attempt in range(attempts):
+        request = urllib.request.Request(url, headers=dict(ARXIV_HEADERS))
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                return response.read().decode("utf-8", "replace")
+        except urllib.error.HTTPError as error:
+            last_error = "HTTP Error %s: %s" % (error.code, error.reason)
+            # 406/400 gibi hatalar istegin kendisinden kaynaklanir, tekrar
+            # denemek duzeltmez.
+            if not (error.code == 429 or 500 <= error.code < 600):
+                raise RuntimeError(last_error) from None
+            wait = _parse_retry_after(error.headers) or _retry_delay(attempt)
+        except (urllib.error.URLError, TimeoutError, OSError) as error:
+            last_error = "%s: %s" % (type(error).__name__, error)
+            wait = _retry_delay(attempt)
+
+        if attempt == attempts - 1:
+            raise RuntimeError(last_error)
+        sleep(max(wait, ARXIV_RETRY_WAIT))
+
+    raise RuntimeError(last_error or "bilinmeyen hata")
 
 
 def _text(node):

@@ -550,3 +550,98 @@ class RetryBehaviourTests(StubServerCase):
         self.call()
         self.assertEqual(len(self.slept), 4)
         self.assertLess(self.slept[0], self.slept[-1])
+
+
+class ArxivFetchHandler(http.server.BaseHTTPRequestHandler):
+    script = []
+    received = []
+
+    def do_GET(self):
+        ArxivFetchHandler.received.append({
+            "path": self.path,
+            "headers": dict(self.headers),
+        })
+        status, body, headers = ArxivFetchHandler.script.pop(0)
+        raw = body.encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/atom+xml")
+        self.send_header("Content-Length", str(len(raw)))
+        for key, value in (headers or {}).items():
+            self.send_header(key, value)
+        self.end_headers()
+        self.wfile.write(raw)
+
+    def log_message(self, *args):
+        pass
+
+
+class ArxivFetchTests(unittest.TestCase):
+    """arXiv istegi -- yerel taklit sunucuya karsi.
+
+    arXiv, Accept basligi olmayan istekleri 406 Not Acceptable ile reddeder;
+    urllib bu basligi kendiliginden gondermez. Bu testler o regresyonu kilitler.
+    """
+
+    def setUp(self):
+        ArxivFetchHandler.script = []
+        ArxivFetchHandler.received = []
+        self.server = http.server.HTTPServer(("127.0.0.1", 0), ArxivFetchHandler)
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        self.url = "http://127.0.0.1:%d/api/query" % self.server.server_address[1]
+        self.slept = []
+
+    def tearDown(self):
+        self.server.shutdown()
+        self.server.server_close()
+        self.thread.join(timeout=5)
+
+    def fetch(self, **kwargs):
+        return radar.fetch_arxiv(self.url, sleep=self.slept.append, **kwargs)
+
+    def test_accept_header_is_sent(self):
+        ArxivFetchHandler.script = [(200, "<feed/>", None)]
+        self.fetch()
+        accept = ArxivFetchHandler.received[0]["headers"]["Accept"]
+        self.assertIn("application/atom+xml", accept)
+        self.assertIn("*/*", accept)
+
+    def test_user_agent_is_descriptive(self):
+        ArxivFetchHandler.script = [(200, "<feed/>", None)]
+        self.fetch()
+        agent = ArxivFetchHandler.received[0]["headers"]["User-Agent"]
+        self.assertIn("arxiv-radar", agent)
+        self.assertNotIn("Python-urllib", agent)
+
+    def test_body_is_returned(self):
+        ArxivFetchHandler.script = [(200, "<feed>ok</feed>", None)]
+        self.assertEqual(self.fetch(), "<feed>ok</feed>")
+
+    def test_406_is_not_retried(self):
+        # Istegin kendisi kabul edilmiyorsa tekrar denemek duzeltmez.
+        ArxivFetchHandler.script = [(406, "not acceptable", None)]
+        with self.assertRaises(RuntimeError) as caught:
+            self.fetch()
+        self.assertIn("406", str(caught.exception))
+        self.assertEqual(len(ArxivFetchHandler.received), 1)
+        self.assertEqual(self.slept, [])
+
+    def test_transient_5xx_is_retried(self):
+        ArxivFetchHandler.script = [(503, "busy", None), (200, "<feed/>", None)]
+        self.assertEqual(self.fetch(), "<feed/>")
+        self.assertEqual(len(ArxivFetchHandler.received), 2)
+
+    def test_retry_waits_at_least_the_polite_interval(self):
+        ArxivFetchHandler.script = [(503, "busy", None), (200, "<feed/>", None)]
+        self.fetch()
+        self.assertGreaterEqual(self.slept[0], radar.ARXIV_RETRY_WAIT)
+
+    def test_gives_up_after_attempts(self):
+        ArxivFetchHandler.script = [(503, "busy", None)] * 3
+        with self.assertRaises(RuntimeError):
+            self.fetch()
+        self.assertEqual(len(ArxivFetchHandler.received), 3)
+
+    def test_endpoint_is_https(self):
+        self.assertTrue(radar.ARXIV_ENDPOINT.startswith("https://"))
+        self.assertTrue(radar.build_arxiv_url().startswith("https://export.arxiv.org/"))
