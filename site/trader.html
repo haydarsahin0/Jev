@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jev Trader</title>
+<meta name="description" content="Bybit vadeli islemlerinde Jev kararlariyla calisan botun durumu: ozkaynak, acik pozisyonlar ve karar gunlugu.">
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f766e'/%3E%3Cpath d='M6 21l6-7 4 4 5-8 5 6' stroke='%23fff' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+:root {
+  --accent: #0f766e;
+  --accent-soft: rgba(15, 118, 110, 0.10);
+  --bg: #fbfaf8;
+  --surface: #ffffff;
+  --surface-2: #f4f2ee;
+  --ink: #1a1815;
+  --ink-2: #57524b;
+  --ink-3: #8b847a;
+  --line: #e4e0d8;
+  --line-strong: #cdc7bb;
+  --bar: #b9b2a5;
+  --up: #1f6b3a;
+  --down: #b3261e;
+  --warn: #a8742a;
+  --focus: #0b63d6;
+  --shadow: 0 1px 2px rgba(26, 24, 21, .05);
+  --ui: "Schibsted Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: "Literata", ui-serif, Georgia, "Times New Roman", serif;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --accent: #4dd4c0; --accent-soft: rgba(77, 212, 192, 0.12);
+    --bg: #14120f; --surface: #1c1a16; --surface-2: #24211c;
+    --ink: #f0ece4; --ink-2: #b6afa3; --ink-3: #857e72;
+    --line: #302c26; --line-strong: #453f37; --bar: #5c564c;
+    --up: #63c088; --down: #f08279; --warn: #d9a44e;
+    --focus: #6ba7ff; --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  --accent: #4dd4c0; --accent-soft: rgba(77, 212, 192, 0.12);
+  --bg: #14120f; --surface: #1c1a16; --surface-2: #24211c;
+  --ink: #f0ece4; --ink-2: #b6afa3; --ink-3: #857e72;
+  --line: #302c26; --line-strong: #453f37; --bar: #5c564c;
+  --up: #63c088; --down: #f08279; --warn: #d9a44e;
+  --focus: #6ba7ff; --shadow: none;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--ui); font-size: 15px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px 72px; }
+
+.masthead { border-bottom: 1px solid var(--line); background: var(--surface); position: sticky; top: 0; z-index: 20; }
+.masthead-in { max-width: 1120px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.brand { display: flex; align-items: baseline; gap: 9px; margin-right: auto; }
+.brand h1 { font-family: var(--serif); font-size: 21px; font-weight: 700; margin: 0; letter-spacing: -.01em; }
+.brand .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); align-self: center; }
+.meta { color: var(--ink-3); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.btn {
+  font-family: var(--ui); font-size: 13px; font-weight: 500; color: var(--ink-2);
+  background: var(--surface); border: 1px solid var(--line-strong);
+  border-radius: 7px; padding: 6px 11px; cursor: pointer;
+}
+.btn:hover { border-color: var(--accent); color: var(--ink); }
+a.btn { text-decoration: none; display: inline-flex; align-items: center; }
+
+.mode {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600;
+  padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line-strong);
+  color: var(--ink-2); background: var(--surface-2); text-transform: uppercase; letter-spacing: .04em;
+}
+.mode[data-mode="live"] { color: #fff; background: var(--down); border-color: var(--down); }
+.mode[data-mode="testnet"], .mode[data-mode="demo"] { color: var(--warn); border-color: var(--warn); }
+
+.banner {
+  margin: 16px 0 0; padding: 11px 14px; border-radius: var(--radius);
+  border: 1px solid var(--line-strong); background: var(--surface-2);
+  color: var(--ink-2); font-size: 13.5px;
+}
+.banner.danger { border-color: var(--down); color: var(--down); background: transparent; }
+.banner.hidden { display: none; }
+
+h2 { font-family: var(--serif); font-size: 17px; margin: 30px 0 10px; font-weight: 700; }
+
+.cards { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(168px, 1fr)); margin-top: 18px; }
+.card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 12px 14px; box-shadow: var(--shadow);
+}
+.card .label { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); }
+.card .value { font-size: 23px; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 3px; letter-spacing: -.01em; }
+.card .sub { font-size: 12.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.up { color: var(--up); } .down { color: var(--down); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.panel .empty { padding: 26px 16px; text-align: center; color: var(--ink-3); font-size: 14px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); font-weight: 600; background: var(--surface-2); position: sticky; top: 0; z-index: 1; }
+tr:last-child td { border-bottom: none; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.scroll { max-height: 520px; overflow: auto; position: relative; }
+
+.tag {
+  display: inline-block; font-size: 11.5px; font-weight: 600; padding: 2px 7px;
+  border-radius: 5px; border: 1px solid var(--line-strong); color: var(--ink-2); white-space: nowrap;
+}
+.tag.open { color: var(--up); border-color: var(--up); }
+.tag.close { color: var(--down); border-color: var(--down); }
+.tag.blocked { color: var(--warn); border-color: var(--warn); }
+.tag.error { color: var(--down); border-color: var(--down); background: var(--accent-soft); }
+.side-long { color: var(--up); font-weight: 600; }
+.side-short { color: var(--down); font-weight: 600; }
+
+.edge { display: flex; align-items: center; gap: 7px; }
+.edge .track { width: 54px; height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; flex: none; }
+.edge .fill { height: 100%; background: var(--accent); }
+.signals { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.sig { font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.sig b { font-weight: 600; color: var(--ink-2); }
+.reason { color: var(--ink-2); }
+
+.curve { padding: 14px; }
+.curve svg { width: 100%; height: 120px; display: block; }
+.policy { display: grid; gap: 6px 18px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); padding: 14px; font-size: 13px; color: var(--ink-2); }
+.policy div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dotted var(--line); padding-bottom: 4px; }
+.policy span:last-child { font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 500; }
+footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--ink-3); font-size: 12.5px; }
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead-in">
+    <div class="brand"><span class="dot"></span><h1>Jev Trader</h1></div>
+    <span class="mode" id="mode">—</span>
+    <span class="meta" id="updated">yukleniyor…</span>
+    <a class="btn" href="index.html">← arXiv Radar</a>
+    <button class="btn" id="theme" type="button">Tema</button>
+    <button class="btn" id="reload" type="button">Yenile</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="banner danger hidden" id="live-banner">
+    <b>Gercek para modu.</b> Bu panelde gordugunuz emirler gercek hesapta acildi.
+  </div>
+  <div class="banner hidden" id="demo-banner">
+    <b>Deneme verisi.</b> Sinyaller Jev'den degil, yerel sahte ureticiden geldi
+    (<code>--mock</code> veya <code>--offline</code>).
+  </div>
+  <div class="banner hidden" id="error-banner"></div>
+
+  <section class="cards" id="cards"></section>
+
+  <h2>Ozkaynak egrisi</h2>
+  <div class="panel curve" id="curve"><div class="empty">Henuz veri yok.</div></div>
+
+  <h2>Acik pozisyonlar</h2>
+  <div class="panel" id="positions"><div class="empty">Acik pozisyon yok.</div></div>
+
+  <h2>Karar gunlugu</h2>
+  <div class="panel scroll" id="ticks"><div class="empty">Henuz karar yok.</div></div>
+
+  <h2>Kapanan islemler</h2>
+  <div class="panel scroll" id="trades"><div class="empty">Henuz islem yok.</div></div>
+
+  <h2>Politika</h2>
+  <div class="panel policy" id="policy"></div>
+
+  <footer>
+    Veri kaynagi: <code>data/trader.json</code>. Bu sayfa hicbir dis servisi cagirmaz,
+    emir gondermez ve anahtar tutmaz. Yatirim tavsiyesi degildir.
+  </footer>
+</main>
+
+<script>
+"use strict";
+
+var DATA_URL = "data/trader.json";
+var SIGNAL_LABELS = {
+  conviction: "kanaat", trend_quality: "trend", entry_timing: "zamanlama",
+  chop_risk: "testere", crowding_risk: "kalabalik", exit_now: "cikis"
+};
+
+function el(tag, className, text) {
+  var node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined && text !== null) node.textContent = String(text);
+  return node;
+}
+
+function num(value, digits) {
+  if (typeof value !== "number" || !isFinite(value)) return "—";
+  return value.toFixed(digits === undefined ? 2 : digits);
+}
+
+function signed(value, digits) {
+  if (typeof value !== "number" || !isFinite(value)) return "—";
+  return (value > 0 ? "+" : "") + value.toFixed(digits === undefined ? 2 : digits);
+}
+
+function timeText(iso) {
+  if (!iso) return "—";
+  var moment = new Date(iso);
+  if (isNaN(moment.getTime())) return String(iso);
+  return moment.toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" });
+}
+
+function sideCell(side) {
+  var span = el("span", side === "long" ? "side-long" : "side-short",
+                side === "long" ? "LONG" : "SHORT");
+  return span;
+}
+
+/* ---------- ust kartlar ---------- */
+
+function renderCards(state) {
+  var host = document.getElementById("cards");
+  host.textContent = "";
+  var trades = state.trades || [];
+  var closed = trades.length;
+  var wins = trades.filter(function (t) { return t.pnl > 0; }).length;
+  var gross = trades.reduce(function (sum, t) { return sum + (t.pnl || 0); }, 0);
+  var start = (state.day && state.day.start_equity) || state.equity || 0;
+  var dayPnl = (state.day && state.day.realized_pnl) || 0;
+
+  var cards = [
+    { label: "Ozkaynak", value: num(state.equity) + " USDT",
+      sub: (state.symbols || []).join(" · ") },
+    { label: "Bugun", value: signed(dayPnl) + " USDT",
+      sub: "gun basi " + num(start) + " USDT", tone: dayPnl },
+    { label: "Toplam kapanan", value: signed(gross) + " USDT",
+      sub: closed + " islem", tone: gross },
+    { label: "Kazanma orani",
+      value: closed ? Math.round(wins / closed * 100) + "%" : "—",
+      sub: closed ? wins + " / " + closed : "islem yok" },
+    { label: "Acik pozisyon", value: String((state.positions || []).length),
+      sub: "sinir " + ((state.policy && state.policy.max_open_positions) || "—") },
+    { label: "Ust uste zarar", value: String(state.consecutive_losses || 0),
+      sub: (state.cooldown_until && state.cooldown_until > Date.now())
+        ? "beklemede" : "kilit yok",
+      tone: -(state.consecutive_losses || 0) }
+  ];
+
+  cards.forEach(function (item) {
+    var card = el("div", "card");
+    card.appendChild(el("div", "label", item.label));
+    var value = el("div", "value", item.value);
+    if (typeof item.tone === "number" && item.tone !== 0) {
+      value.classList.add(item.tone > 0 ? "up" : "down");
+    }
+    card.appendChild(value);
+    card.appendChild(el("div", "sub", item.sub));
+    host.appendChild(card);
+  });
+}
+
+/* ---------- ozkaynak egrisi ---------- */
+
+function renderCurve(state) {
+  var host = document.getElementById("curve");
+  host.textContent = "";
+  var points = (state.equity_curve || []).filter(function (p) {
+    return typeof p.equity === "number";
+  });
+  if (points.length < 2) {
+    host.appendChild(el("div", "empty", "Egri icin en az iki tik gerekiyor."));
+    return;
+  }
+  var values = points.map(function (p) { return p.equity; });
+  var low = Math.min.apply(null, values);
+  var high = Math.max.apply(null, values);
+  var span = (high - low) || 1;
+  var width = 800, height = 120, pad = 6;
+
+  var path = points.map(function (point, index) {
+    var x = pad + index * (width - pad * 2) / (points.length - 1);
+    var y = height - pad - (point.equity - low) / span * (height - pad * 2);
+    return (index ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1);
+  }).join(" ");
+
+  var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+  svg.setAttribute("preserveAspectRatio", "none");
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label",
+    "Ozkaynak egrisi: " + num(values[0]) + " USDT'den " + num(values[values.length - 1]) + " USDT'ye");
+
+  var line = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  line.setAttribute("d", path);
+  line.setAttribute("fill", "none");
+  line.setAttribute("stroke", "currentColor");
+  line.setAttribute("stroke-width", "2");
+  line.setAttribute("stroke-linejoin", "round");
+  svg.style.color = values[values.length - 1] >= values[0]
+    ? "var(--up)" : "var(--down)";
+  svg.appendChild(line);
+  host.appendChild(svg);
+
+  var caption = el("div", "sub");
+  caption.textContent = "en dusuk " + num(low) + " · en yuksek " + num(high)
+    + " · " + points.length + " tik";
+  host.appendChild(caption);
+}
+
+/* ---------- tablolar ---------- */
+
+function table(columns, rows, builder, emptyText) {
+  if (!rows.length) return el("div", "empty", emptyText);
+  var node = el("table");
+  var head = el("thead");
+  var headRow = el("tr");
+  columns.forEach(function (column) {
+    var cell = el("th", column.num ? "num" : null, column.label);
+    headRow.appendChild(cell);
+  });
+  head.appendChild(headRow);
+  node.appendChild(head);
+  var body = el("tbody");
+  rows.forEach(function (row) { body.appendChild(builder(row)); });
+  node.appendChild(body);
+  return node;
+}
+
+function renderPositions(state) {
+  var host = document.getElementById("positions");
+  host.textContent = "";
+  var columns = [
+    { label: "Sembol" }, { label: "Yon" }, { label: "Miktar", num: true },
+    { label: "Giris", num: true }, { label: "Stop", num: true },
+    { label: "Hedef", num: true }, { label: "Kaldirac", num: true },
+    { label: "Kenar", num: true }
+  ];
+  host.appendChild(table(columns, state.positions || [], function (position) {
+    var row = el("tr");
+    row.appendChild(el("td", null, position.symbol));
+    var side = el("td");
+    side.appendChild(sideCell(position.side));
+    row.appendChild(side);
+    row.appendChild(el("td", "num", num(position.qty, 6)));
+    row.appendChild(el("td", "num", num(position.entry, 4)));
+    row.appendChild(el("td", "num", num(position.stop, 4)));
+    row.appendChild(el("td", "num", num(position.target, 4)));
+    row.appendChild(el("td", "num", "x" + (position.leverage || "—")));
+    row.appendChild(el("td", "num", num(position.edge, 2)));
+    return row;
+  }, "Acik pozisyon yok."));
+}
+
+function renderTicks(state) {
+  var host = document.getElementById("ticks");
+  host.textContent = "";
+  var ticks = (state.ticks || []).slice().reverse();
+  var columns = [
+    { label: "Saat" }, { label: "Sembol" }, { label: "Karar" },
+    { label: "Fiyat", num: true }, { label: "Kenar" }, { label: "Gerekce" }
+  ];
+  host.appendChild(table(columns, ticks, function (tick) {
+    var row = el("tr");
+    row.appendChild(el("td", null, timeText(tick.t)));
+    row.appendChild(el("td", null, tick.symbol));
+
+    var action = el("td");
+    action.appendChild(el("span", "tag " + (tick.action || ""), tick.action || "—"));
+    row.appendChild(action);
+
+    row.appendChild(el("td", "num", num(tick.price, 4)));
+
+    var edgeCell = el("td");
+    var edge = el("div", "edge");
+    var track = el("div", "track");
+    var fill = el("div", "fill");
+    fill.style.width = Math.round(Math.max(0, Math.min(1, tick.edge || 0)) * 100) + "%";
+    track.appendChild(fill);
+    edge.appendChild(track);
+    edge.appendChild(el("span", "sig", num(tick.edge, 2)));
+    edgeCell.appendChild(edge);
+    row.appendChild(edgeCell);
+
+    var reason = el("td");
+    reason.appendChild(el("div", "reason", tick.reason || ""));
+    if (tick.signals) {
+      var signals = el("div", "signals");
+      Object.keys(SIGNAL_LABELS).forEach(function (key) {
+        var value = tick.signals[key];
+        if (typeof value !== "number") return;
+        var item = el("span", "sig");
+        item.appendChild(el("b", null, SIGNAL_LABELS[key]));
+        item.appendChild(document.createTextNode(" " + num(value, 2)));
+        signals.appendChild(item);
+      });
+      if (typeof tick.signals.direction_confidence === "number") {
+        var confidence = el("span", "sig");
+        confidence.appendChild(el("b", null, "yon"));
+        confidence.appendChild(document.createTextNode(
+          " " + tick.signals.side + " " + num(tick.signals.direction_confidence, 2)));
+        signals.appendChild(confidence);
+      }
+      reason.appendChild(signals);
+    }
+    row.appendChild(reason);
+    return row;
+  }, "Henuz karar yok."));
+}
+
+function renderTrades(state) {
+  var host = document.getElementById("trades");
+  host.textContent = "";
+  var trades = (state.trades || []).slice().reverse();
+  var columns = [
+    { label: "Kapanis" }, { label: "Sembol" }, { label: "Yon" },
+    { label: "Giris", num: true }, { label: "Cikis", num: true },
+    { label: "P/Z", num: true }, { label: "Sebep" }
+  ];
+  host.appendChild(table(columns, trades, function (trade) {
+    var row = el("tr");
+    row.appendChild(el("td", null, timeText(
+      trade.closed_ms ? new Date(trade.closed_ms).toISOString() : null)));
+    row.appendChild(el("td", null, trade.symbol));
+    var side = el("td");
+    side.appendChild(sideCell(trade.side));
+    row.appendChild(side);
+    row.appendChild(el("td", "num", num(trade.entry, 4)));
+    row.appendChild(el("td", "num", num(trade.exit, 4)));
+    var pnl = el("td", "num " + (trade.pnl >= 0 ? "up" : "down"), signed(trade.pnl));
+    row.appendChild(pnl);
+    row.appendChild(el("td", null, trade.reason || ""));
+    return row;
+  }, "Henuz islem yok."));
+}
+
+function renderPolicy(state) {
+  var host = document.getElementById("policy");
+  host.textContent = "";
+  var policy = state.policy || {};
+  var rows = [
+    ["Islem basina risk", "risk_per_trade", function (v) { return (v * 100).toFixed(2) + "%"; }],
+    ["Kaldirac tavani", "max_leverage", function (v) { return "x" + v; }],
+    ["Pozisyon tavani", "max_notional_x", function (v) { return "ozkaynak x " + v; }],
+    ["Stop mesafesi", "atr_stop_mult", function (v) { return v + " ATR"; }],
+    ["Hedef", "take_profit_r", function (v) { return v + "R"; }],
+    ["Kenar esigi", "min_edge", function (v) { return String(v); }],
+    ["Gunluk zarar tavani", "daily_loss_limit_pct", function (v) { return v + "%"; }],
+    ["Acik pozisyon siniri", "max_open_positions", function (v) { return String(v); }]
+  ];
+  var shown = 0;
+  rows.forEach(function (row) {
+    var value = policy[row[1]];
+    if (typeof value !== "number" || !isFinite(value)) return;
+    var line = el("div");
+    line.appendChild(el("span", null, row[0]));
+    line.appendChild(el("span", null, row[2](value)));
+    host.appendChild(line);
+    shown += 1;
+  });
+  if (!shown) host.appendChild(el("div", "empty", "Politika bilgisi yok."));
+}
+
+/* ---------- yukleme ---------- */
+
+function render(state) {
+  var mode = document.getElementById("mode");
+  mode.textContent = state.demo ? "deneme" : (state.mode || "—");
+  mode.setAttribute("data-mode", state.demo ? "demo" : (state.mode || ""));
+  document.getElementById("updated").textContent =
+    "guncelleme " + timeText(state.updated_at) + " · " + (state.interval || "—") + " dk mum";
+  document.getElementById("live-banner").classList
+    .toggle("hidden", state.mode !== "live" || !!state.demo);
+  document.getElementById("demo-banner").classList.toggle("hidden", !state.demo);
+
+  renderCards(state);
+  renderCurve(state);
+  renderPositions(state);
+  renderTicks(state);
+  renderTrades(state);
+  renderPolicy(state);
+}
+
+function showError(message) {
+  var banner = document.getElementById("error-banner");
+  banner.textContent = message;
+  banner.classList.remove("hidden");
+  document.getElementById("updated").textContent = "veri yok";
+}
+
+function load() {
+  fetch(DATA_URL, { cache: "no-store" })
+    .then(function (response) {
+      if (!response.ok) throw new Error(String(response.status));
+      return response.json();
+    })
+    .then(function (state) {
+      if (!state || state.format !== "jev-trader/1") {
+        throw new Error("bicim taninmadi");
+      }
+      render(state);
+    })
+    .catch(function () {
+      showError("data/trader.json okunamadi. Botu bir kez calistirin: " +
+                "python trader/bot.py --offline --mock --once");
+    });
+}
+
+document.getElementById("reload").addEventListener("click", load);
+document.getElementById("theme").addEventListener("click", function () {
+  var root = document.documentElement;
+  var current = root.getAttribute("data-theme");
+  var next = current === "dark" ? "light" : (current === "light" ? "auto" : "dark");
+  root.setAttribute("data-theme", next);
+  try { localStorage.setItem("jev-trader-theme", next); } catch (error) { /* yok say */ }
+});
+try {
+  var saved = localStorage.getItem("jev-trader-theme");
+  if (saved) document.documentElement.setAttribute("data-theme", saved);
+} catch (error) { /* depolama kapali olabilir */ }
+
+load();
+</script>
+</body>
+</html>

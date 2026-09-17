@@ -1,0 +1,143 @@
+name: Jev Trader
+
+on:
+  schedule:
+    # Saat basi. 1 saatlik mumla calisiyoruz; daha sik tik hem Actions
+    # dakikasi hem Jev istegi harcar, karari degistirmez.
+    - cron: "5 * * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Yurutme modu"
+        required: false
+        type: choice
+        options: [paper, testnet, live]
+        default: paper
+      symbols:
+        description: "Semboller (virgulle)"
+        required: false
+        type: string
+        default: ""
+      interval:
+        description: "Mum araligi, dakika (bos = 60)"
+        required: false
+        type: string
+        default: ""
+      mock:
+        description: "Jev'i cagirma, sahte sinyal uret"
+        required: false
+        type: boolean
+        default: false
+      dry_run:
+        description: "Borsa modunda emri hesapla ama gonderme"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+# Ayni anda tek tik. Iptal etmiyoruz: emir gonderilmisken kesilmek,
+# durum dosyasi guncellenmeden pozisyon acik kalmasi demek olurdu.
+concurrency:
+  group: jev-trader
+  cancel-in-progress: false
+
+jobs:
+  trade:
+    name: Tik calistir
+    runs-on: ubuntu-latest
+    steps:
+      - name: Depoyu al
+        uses: actions/checkout@v4
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Birim testleri
+        run: python -m unittest discover -s tests
+
+      - name: Tik
+        env:
+          # Anahtarlar yalnizca bu adimin ortamindadir; loglara, durum
+          # dosyasina veya siteye hicbir sekilde yazilmaz.
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+          BYBIT_API_KEY: ${{ secrets.BYBIT_API_KEY }}
+          BYBIT_API_SECRET: ${{ secrets.BYBIT_API_SECRET }}
+          # Gercek para ancak bu degisken repoda "yes" ise acilir.
+          BYBIT_ALLOW_LIVE: ${{ vars.BYBIT_ALLOW_LIVE }}
+          # Zamanlanmis kosular icin mod: repo degiskeni, yoksa paper.
+          TRADER_MODE: ${{ inputs.mode || vars.TRADER_MODE || 'paper' }}
+          TRADER_SYMBOLS: ${{ inputs.symbols || vars.TRADER_SYMBOLS }}
+          TRADER_INTERVAL: ${{ inputs.interval || vars.TRADER_INTERVAL }}
+          TRADER_MOCK: ${{ inputs.mock }}
+          TRADER_DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          args="--mode $TRADER_MODE --once"
+          if [ -n "$TRADER_SYMBOLS" ]; then
+            args="$args --symbols $TRADER_SYMBOLS"
+          fi
+          if [ -n "$TRADER_INTERVAL" ]; then
+            args="$args --interval $TRADER_INTERVAL"
+          fi
+          if [ "$TRADER_MOCK" = "true" ]; then
+            args="$args --mock"
+          fi
+          if [ "$TRADER_DRY_RUN" = "true" ]; then
+            args="$args --dry-run"
+          fi
+          python trader/bot.py $args
+
+      - name: Durumu commit et
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Yalnizca bot durumu commit edilir, baska hicbir dosya degil.
+          git add site/data/trader.json
+          if git diff --cached --quiet; then
+            echo "Durum degismedi, commit atlandi."
+            exit 0
+          fi
+          git commit -m "trader: $(date -u +'%Y-%m-%d %H:%M') tiki"
+
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              echo "Push basarili."
+              exit 0
+            fi
+            echo "Push basarisiz (deneme $attempt), rebase ile tekrar deneniyor…"
+            sleep $((attempt * 2))
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+          done
+
+          echo "Push 5 denemede basarisiz oldu." >&2
+          exit 1
+
+      - name: Pages yapilandirmasi
+        uses: actions/configure-pages@v5
+
+      - name: site/ klasorunu artifact olarak yukle
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    name: GitHub Pages'e yayinla
+    needs: trade
+    runs-on: ubuntu-latest
+    # Pages dagitimi tek sirada ilerlesin (arXiv Radar ile carpismasin).
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Yayinla
+        id: deployment
+        uses: actions/deploy-pages@v4
