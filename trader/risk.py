@@ -42,8 +42,42 @@ POLICY = {
 }
 
 
+# Dakikalik RSI scalp'i icin on ayar. Saatlik trend ayarlari 1 dakikalik
+# mumda anlamsiz kalir: 45 dakikalik giris beklemesi gunde bir islem demektir,
+# 1.8 ATR'lik stop ise 1 dakikalik mumda komisyon kadar bir mesafedir.
+SCALP = {
+    "risk_per_trade": 0.005,
+    "atr_stop_mult": 2.2,
+    "take_profit_r": 1.2,
+    "min_stop_pct": 0.18,          # stop en az fiyatin %0.18'i (komisyon payi)
+    "min_edge": 0.22,
+    "min_direction_confidence": 0.45,
+    "max_chop_risk": 0.75,
+    "max_crowding_risk": 0.85,
+    "cooldown_minutes": 30,
+    "max_consecutive_losses": 4,
+    "min_minutes_between_entries": 3,
+}
+
+# Komisyon stopu yutmasin: stop mesafesi fiyatin en az bu kadari olur.
+POLICY["min_stop_pct"] = 0.0
+
+
 def merge_policy(overrides=None):
     policy = dict(POLICY)
+    policy.update({k: v for k, v in (overrides or {}).items() if v is not None})
+    return policy
+
+
+def policy_for(interval_minutes=60, overrides=None):
+    """Mum araligina gore taban politika; uzerine kullanicinin ezmeleri."""
+    policy = dict(POLICY)
+    try:
+        minutes = int(interval_minutes)
+    except (TypeError, ValueError):
+        minutes = 60
+    if minutes <= 5:
+        policy.update(SCALP)
     policy.update({k: v for k, v in (overrides or {}).items() if v is not None})
     return policy
 
@@ -132,7 +166,9 @@ def _act(action, side, value, reason):
 def stop_and_target(side, price, atr_value, policy=None):
     """ATR'ye dayali stop ve hedef fiyatlari."""
     policy = merge_policy(policy)
-    distance = max(atr_value * policy["atr_stop_mult"], price * 0.001)
+    floor_pct = policy.get("min_stop_pct", 0.0) / 100.0
+    distance = max(atr_value * policy["atr_stop_mult"],
+                   price * max(floor_pct, 0.001))
     if side == "long":
         return price - distance, price + distance * policy["take_profit_r"], distance
     return price + distance, price - distance * policy["take_profit_r"], distance
@@ -225,3 +261,47 @@ def guardrails(state, policy=None, now_ms=None, open_positions=0, equity=None):
         return False, "Ozkaynak alt sinirin altinda (%.2f)" % equity
 
     return True, "Kilitler acik"
+
+
+# --------------------------------------------------------------------------
+# Onay katmani (RSI-2 gibi mekanik kurallar icin)
+# --------------------------------------------------------------------------
+
+def confirm_edge(signals):
+    """Onay sorularindan 0-1 arasi kenar.
+
+    Burada yon zaten kuraldan gelir; Jev'in isi bu **ornegi** yargilamak:
+    kurulum kalitesi, alma/atlama tercihi ve dusen bicak / kalabalik riski.
+    """
+    take_confidence = _unit(signals.get("take_confidence"))
+    if signals.get("take") is False:
+        take_confidence = 0.0
+    positive = (0.45 * _unit(signals.get("setup_quality"))
+                + 0.55 * take_confidence)
+    penalty = (1.0 - 0.60 * _unit(signals.get("falling_knife"), 1.0)) \
+        * (1.0 - 0.35 * _unit(signals.get("crowding_risk"), 1.0))
+    return round(max(0.0, min(1.0, positive * penalty)), 4)
+
+
+def confirm_decision(setup_side, signals, policy=None):
+    """Kural tetikledi; Jev onayliyor mu?
+
+    Jev yalnizca **hayir** diyebilir. Kural yoksa islem de yoktur; Jev'in
+    kendiliginden pozisyon actirmasi mumkun degil.
+    """
+    policy = merge_policy(policy)
+    value = confirm_edge(signals)
+    if setup_side not in ("long", "short"):
+        return _act("none", None, value, "Kural sinyal vermedi")
+    if signals.get("take") is False:
+        return _act("none", None, value, "Jev bu kurulumu atla diyor")
+    if _unit(signals.get("falling_knife"), 1.0) > policy["max_chop_risk"]:
+        return _act("none", None, value, "Dusen bicak riski yuksek (%.2f)"
+                    % signals.get("falling_knife", 1.0))
+    if _unit(signals.get("crowding_risk"), 1.0) > policy["max_crowding_risk"]:
+        return _act("none", None, value, "Kalabalik/asiri gerilmis piyasa (%.2f)"
+                    % signals.get("crowding_risk", 1.0))
+    if value < policy["min_edge"]:
+        return _act("none", None, value, "Onay kenari esigin altinda (%.2f < %.2f)"
+                    % (value, policy["min_edge"]))
+    return _act("open", setup_side, value, "Kural + Jev onayi (kenar %.2f)" % value)

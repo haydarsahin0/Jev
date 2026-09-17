@@ -158,7 +158,7 @@ def _float(value, default=0.0):
         return default
 
 
-def jev_state(symbol, snap, position=None, policy=None):
+def jev_state(symbol, snap, position=None, policy=None, setup=None):
     """Jev'e gonderilen durum. Fiyat degil, olcekten bagimsiz sinyaller."""
     market = {
         "symbol": symbol,
@@ -188,6 +188,8 @@ def jev_state(symbol, snap, position=None, policy=None):
             "bars_held": position.get("bars_held"),
             "distance_to_stop_in_atr": position.get("stop_distance_atr"),
         }
+    if setup:
+        state["setup"] = setup
     if policy:
         state["policy"] = policy
     return state

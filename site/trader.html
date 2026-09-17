@@ -120,6 +120,8 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .tag.open { color: var(--up); border-color: var(--up); }
 .tag.close { color: var(--down); border-color: var(--down); }
 .tag.blocked { color: var(--warn); border-color: var(--warn); }
+.tag.veto { color: var(--warn); border-color: var(--warn); }
+.tag.signal { color: var(--accent); border-color: var(--accent); }
 .tag.error { color: var(--down); border-color: var(--down); background: var(--accent-soft); }
 .side-long { color: var(--up); font-weight: 600; }
 .side-short { color: var(--down); font-weight: 600; }
@@ -132,6 +134,22 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .sig b { font-weight: 600; color: var(--ink-2); }
 .reason { color: var(--ink-2); }
 
+.rule { font-family: var(--ui); font-size: 12.5px; font-weight: 500; color: var(--ink-3); letter-spacing: 0; }
+.rsi { display: flex; align-items: center; gap: 8px; }
+.rsi .scale {
+  position: relative; width: 120px; height: 8px; border-radius: 4px; flex: none;
+  background: linear-gradient(to right,
+    var(--up) 0%, var(--up) 30%, var(--surface-2) 30%,
+    var(--surface-2) 70%, var(--down) 70%, var(--down) 100%);
+  opacity: .85;
+}
+.rsi .pin {
+  position: absolute; top: -3px; width: 2px; height: 14px;
+  background: var(--ink); border-radius: 1px;
+}
+.rsi b { font-variant-numeric: tabular-nums; font-weight: 600; min-width: 38px; }
+.bars { font-size: 12px; color: var(--ink-3); }
+.bars.hot { color: var(--accent); font-weight: 600; }
 .curve { padding: 14px; }
 .curve svg { width: 100%; height: 120px; display: block; }
 .policy { display: grid; gap: 6px 18px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); padding: 14px; font-size: 13px; color: var(--ink-2); }
@@ -147,6 +165,7 @@ footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--line);
     <span class="mode" id="mode">—</span>
     <span class="meta" id="updated">yukleniyor…</span>
     <a class="btn" href="index.html">← arXiv Radar</a>
+    <button class="btn" id="auto" type="button" aria-pressed="true">Oto ✓</button>
     <button class="btn" id="theme" type="button">Tema</button>
     <button class="btn" id="reload" type="button">Yenile</button>
   </div>
@@ -163,6 +182,9 @@ footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--line);
   <div class="banner hidden" id="error-banner"></div>
 
   <section class="cards" id="cards"></section>
+
+  <h2>Canli takip <span class="rule" id="rule"></span></h2>
+  <div class="panel" id="watch"><div class="empty">Henuz veri yok.</div></div>
 
   <h2>Ozkaynak egrisi</h2>
   <div class="panel curve" id="curve"><div class="empty">Henuz veri yok.</div></div>
@@ -334,6 +356,74 @@ function table(columns, rows, builder, emptyText) {
   return node;
 }
 
+function rsiCell(value) {
+  var wrap = el("div", "rsi");
+  var scale = el("div", "scale");
+  if (typeof value === "number") {
+    var pin = el("div", "pin");
+    pin.style.left = Math.max(0, Math.min(100, value)) + "%";
+    scale.appendChild(pin);
+  }
+  wrap.appendChild(scale);
+  wrap.appendChild(el("b", null, num(value, 1)));
+  return wrap;
+}
+
+function renderWatch(state) {
+  var host = document.getElementById("watch");
+  host.textContent = "";
+  var config = state.strategy_config || {};
+  var rows = Object.keys(state.watch || {}).sort().map(function (symbol) {
+    var row = state.watch[symbol];
+    row.symbol = symbol;
+    return row;
+  });
+  var columns = [
+    { label: "Sembol" }, { label: "Fiyat", num: true }, { label: "RSI" },
+    { label: "Ust uste" }, { label: "Durum" }, { label: "Son bakis" }
+  ];
+  host.appendChild(table(columns, rows, function (row) {
+    var line = el("tr");
+    line.appendChild(el("td", null, row.symbol));
+    line.appendChild(el("td", "num", num(row.price, 4)));
+    var rsi = el("td");
+    rsi.appendChild(rsiCell(row.rsi));
+    line.appendChild(rsi);
+
+    var bars = el("td");
+    var needed = config.confirm_bars || 2;
+    var count = Math.max(row.long_bars || 0, row.short_bars || 0);
+    var text = count ? (count + " mum " + ((row.long_bars || 0) >= (row.short_bars || 0)
+      ? "asiri satim" : "asiri alim")) : "—";
+    var label = el("span", "bars" + (count >= needed ? " hot" : ""), text);
+    bars.appendChild(label);
+    line.appendChild(bars);
+
+    var status = el("td");
+    if (row.position) {
+      status.appendChild(el("span", "tag " + (row.position === "long" ? "open" : "close"),
+                            row.position === "long" ? "LONG acik" : "SHORT acik"));
+    } else if (row.signal) {
+      status.appendChild(el("span", "tag signal", row.signal.toUpperCase() + " sinyali"));
+    } else {
+      status.appendChild(el("span", "sig", "bekliyor"));
+    }
+    line.appendChild(status);
+    line.appendChild(el("td", null, timeText(row.t)));
+    return line;
+  }, "Bot henuz bir tik atmadi."));
+
+  var rule = document.getElementById("rule");
+  if (config.rsi_period) {
+    rule.textContent = "RSI(" + config.rsi_period + ") · " + (config.confirm_bars || 2)
+      + " mum ust uste · <" + config.oversold + " long · >" + config.overbought
+      + " short · " + (state.interval || "?") + " dk"
+      + (state.jev === "off" ? " · Jev kapali" : " · Jev onayli");
+  } else {
+    rule.textContent = "";
+  }
+}
+
 function renderPositions(state) {
   var host = document.getElementById("positions");
   host.textContent = "";
@@ -365,7 +455,8 @@ function renderTicks(state) {
   var ticks = (state.ticks || []).slice().reverse();
   var columns = [
     { label: "Saat" }, { label: "Sembol" }, { label: "Karar" },
-    { label: "Fiyat", num: true }, { label: "Kenar" }, { label: "Gerekce" }
+    { label: "Fiyat", num: true }, { label: "RSI", num: true },
+    { label: "Mum", num: true }, { label: "Gerekce" }
   ];
   host.appendChild(table(columns, ticks, function (tick) {
     var row = el("tr");
@@ -374,45 +465,48 @@ function renderTicks(state) {
 
     var action = el("td");
     action.appendChild(el("span", "tag " + (tick.action || ""), tick.action || "—"));
+    if (tick.side) {
+      action.appendChild(document.createTextNode(" "));
+      action.appendChild(sideCell(tick.side));
+    }
     row.appendChild(action);
 
     row.appendChild(el("td", "num", num(tick.price, 4)));
-
-    var edgeCell = el("td");
-    var edge = el("div", "edge");
-    var track = el("div", "track");
-    var fill = el("div", "fill");
-    fill.style.width = Math.round(Math.max(0, Math.min(1, tick.edge || 0)) * 100) + "%";
-    track.appendChild(fill);
-    edge.appendChild(track);
-    edge.appendChild(el("span", "sig", num(tick.edge, 2)));
-    edgeCell.appendChild(edge);
-    row.appendChild(edgeCell);
+    row.appendChild(el("td", "num", num(tick.rsi, 1)));
+    row.appendChild(el("td", "num", tick.bars === undefined ? "—" : String(tick.bars)));
 
     var reason = el("td");
     reason.appendChild(el("div", "reason", tick.reason || ""));
-    if (tick.signals) {
-      var signals = el("div", "signals");
-      Object.keys(SIGNAL_LABELS).forEach(function (key) {
-        var value = tick.signals[key];
-        if (typeof value !== "number") return;
-        var item = el("span", "sig");
-        item.appendChild(el("b", null, SIGNAL_LABELS[key]));
-        item.appendChild(document.createTextNode(" " + num(value, 2)));
-        signals.appendChild(item);
-      });
-      if (typeof tick.signals.direction_confidence === "number") {
-        var confidence = el("span", "sig");
-        confidence.appendChild(el("b", null, "yon"));
-        confidence.appendChild(document.createTextNode(
-          " " + tick.signals.side + " " + num(tick.signals.direction_confidence, 2)));
-        signals.appendChild(confidence);
-      }
-      reason.appendChild(signals);
+    var details = el("div", "signals");
+    if (typeof tick.edge === "number") {
+      var edge = el("span", "sig");
+      edge.appendChild(el("b", null, "kenar"));
+      edge.appendChild(document.createTextNode(" " + num(tick.edge, 2)));
+      details.appendChild(edge);
     }
+    if (tick.signals) {
+      [["setup_quality", "kalite"], ["falling_knife", "bicak"],
+       ["crowding_risk", "kalabalik"], ["take_confidence", "guven"]]
+        .forEach(function (pair) {
+          var value = tick.signals[pair[0]];
+          if (typeof value !== "number") return;
+          var item = el("span", "sig");
+          item.appendChild(el("b", null, pair[1]));
+          item.appendChild(document.createTextNode(" " + num(value, 2)));
+          details.appendChild(item);
+        });
+    }
+    if (typeof tick.leverage === "number") {
+      var size = el("span", "sig");
+      size.appendChild(el("b", null, "boyut"));
+      size.appendChild(document.createTextNode(
+        " " + num(tick.qty, 6) + " x" + tick.leverage));
+      details.appendChild(size);
+    }
+    if (details.childNodes.length) reason.appendChild(details);
     row.appendChild(reason);
     return row;
-  }, "Henuz karar yok."));
+  }, "Henuz bir olay yok. Sessiz tikler gunluge yazilmaz."));
 }
 
 function renderTrades(state) {
@@ -455,6 +549,25 @@ function renderPolicy(state) {
     ["Gunluk zarar tavani", "daily_loss_limit_pct", function (v) { return v + "%"; }],
     ["Acik pozisyon siniri", "max_open_positions", function (v) { return String(v); }]
   ];
+  var config = state.strategy_config || {};
+  var strategyRows = [
+    ["RSI periyodu", "rsi_period", function (v) { return String(v); }],
+    ["Asiri satim / alim", "oversold", function () {
+      return config.oversold + " / " + config.overbought; }],
+    ["Ust uste mum", "confirm_bars", function (v) { return String(v); }],
+    ["Gecikme toleransi", "grace_bars", function (v) { return v + " mum"; }],
+    ["Notr cikis", "exit_rsi_long", function (v) { return "RSI " + v; }],
+    ["En fazla tutma", "max_hold_minutes", function (v) { return v + " dk"; }]
+  ];
+  strategyRows.forEach(function (row) {
+    var value = config[row[1]];
+    if (typeof value !== "number") return;
+    var line = el("div");
+    line.appendChild(el("span", null, row[0]));
+    line.appendChild(el("span", null, row[2](value)));
+    host.appendChild(line);
+  });
+
   var shown = 0;
   rows.forEach(function (row) {
     var value = policy[row[1]];
@@ -465,7 +578,9 @@ function renderPolicy(state) {
     host.appendChild(line);
     shown += 1;
   });
-  if (!shown) host.appendChild(el("div", "empty", "Politika bilgisi yok."));
+  if (!shown && !host.childNodes.length) {
+    host.appendChild(el("div", "empty", "Politika bilgisi yok."));
+  }
 }
 
 /* ---------- yukleme ---------- */
@@ -475,12 +590,14 @@ function render(state) {
   mode.textContent = state.demo ? "deneme" : (state.mode || "—");
   mode.setAttribute("data-mode", state.demo ? "demo" : (state.mode || ""));
   document.getElementById("updated").textContent =
-    "guncelleme " + timeText(state.updated_at) + " · " + (state.interval || "—") + " dk mum";
+    "guncelleme " + timeText(state.updated_at) + " · " + (state.strategy || "—")
+    + " · " + (state.interval || "—") + " dk mum";
   document.getElementById("live-banner").classList
     .toggle("hidden", state.mode !== "live" || !!state.demo);
   document.getElementById("demo-banner").classList.toggle("hidden", !state.demo);
 
   renderCards(state);
+  renderWatch(state);
   renderCurve(state);
   renderPositions(state);
   renderTicks(state);
@@ -513,6 +630,19 @@ function load() {
     });
 }
 
+var autoTimer = null;
+function setAuto(on) {
+  var button = document.getElementById("auto");
+  button.setAttribute("aria-pressed", on ? "true" : "false");
+  button.textContent = on ? "Oto ✓" : "Oto ✗";
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+  if (on) autoTimer = setInterval(load, 30000);
+  try { localStorage.setItem("jev-trader-auto", on ? "1" : "0"); } catch (error) { /* yok say */ }
+}
+
+document.getElementById("auto").addEventListener("click", function () {
+  setAuto(this.getAttribute("aria-pressed") !== "true");
+});
 document.getElementById("reload").addEventListener("click", load);
 document.getElementById("theme").addEventListener("click", function () {
   var root = document.documentElement;
@@ -525,6 +655,10 @@ try {
   var saved = localStorage.getItem("jev-trader-theme");
   if (saved) document.documentElement.setAttribute("data-theme", saved);
 } catch (error) { /* depolama kapali olabilir */ }
+
+var autoSaved = "1";
+try { autoSaved = localStorage.getItem("jev-trader-auto") || "1"; } catch (error) { /* yok say */ }
+setAuto(autoSaved === "1");
 
 load();
 </script>

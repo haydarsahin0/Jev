@@ -21,6 +21,7 @@ import features     # noqa: E402
 import jev          # noqa: E402
 import paper        # noqa: E402
 import risk         # noqa: E402
+import strategy     # noqa: E402
 
 
 # --------------------------------------------------------------------------
@@ -77,6 +78,47 @@ def candles(count=240, start_price=100.0, drift=0.35, amp=3.5):
                      "close": price,
                      "volume": 1000.0 + (i % 7) * 50})
     return rows
+
+
+
+def choppy(count=60, step=0.05, start_price=100.0):
+    """RSI'nin notr kaldigi kucuk zikzak: senaryolarin baslangic zemini."""
+    rows = []
+    price = start_price
+    for i in range(count):
+        previous = price
+        price = price + (step if i % 2 == 0 else -step)
+        rows.append({"start": 1700000000000 + i * 60000, "open": previous,
+                     "high": max(previous, price) + 0.02,
+                     "low": min(previous, price) - 0.02,
+                     "close": price, "volume": 10.0})
+    return rows
+
+
+def extend(rows, count, pct):
+    """Son mumdan itibaren `count` mum boyunca yuzde `pct` hareket ekler."""
+    out = list(rows)
+    for _ in range(count):
+        previous = out[-1]["close"]
+        price = previous * (1 + pct)
+        out.append({"start": out[-1]["start"] + 60000, "open": previous,
+                    "high": max(previous, price) + 0.02,
+                    "low": min(previous, price) - 0.02,
+                    "close": price, "volume": 10.0})
+    return out
+
+
+def with_open_bar(rows):
+    """Bybit'in dondurdugu gibi sona henuz kapanmamis bir mum ekler."""
+    return rows + [dict(rows[-1], start=rows[-1]["start"] + 60000)]
+
+
+def oversold_series(drops=2):
+    return with_open_bar(extend(choppy(), drops, -0.004))
+
+
+def overbought_series(ups=3):
+    return with_open_bar(extend(choppy(), ups, 0.004))
 
 
 # --------------------------------------------------------------------------
@@ -602,11 +644,11 @@ class FakeData:
     """Bybit yerine gecen piyasa verisi kaynagi."""
 
     def __init__(self, rows=None, ticker=None):
-        self.rows = rows if rows is not None else candles(240)
-        self._ticker = ticker or {"fundingRate": "0.0001", "price24hPcnt": "0.02",
+        self.rows = rows if rows is not None else oversold_series()
+        self._ticker = ticker or {"fundingRate": "0.0001", "price24hPcnt": "-0.01",
                                   "markPrice": str(self.rows[-1]["close"])}
 
-    def klines(self, symbol, interval="60", limit=220):
+    def klines(self, symbol, interval="1", limit=240):
         return self.rows
 
     def ticker(self, symbol):
@@ -614,20 +656,209 @@ class FakeData:
 
     def instrument(self, symbol):
         return {"lotSizeFilter": {"qtyStep": "0.001", "minOrderQty": "0.001"},
-                "priceFilter": {"tickSize": "0.1"},
+                "priceFilter": {"tickSize": "0.01"},
                 "leverageFilter": {"maxLeverage": "25"}}
 
+
+# --------------------------------------------------------------------------
+# Strateji: RSI-2
+# --------------------------------------------------------------------------
+
+class RsiSeriesTests(unittest.TestCase):
+    def test_first_values_are_empty(self):
+        series = strategy.rsi_series([float(i) for i in range(30)], 14)
+        self.assertEqual(series[:14], [None] * 14)
+        self.assertIsNotNone(series[14])
+
+    def test_series_matches_the_single_shot_rsi(self):
+        values = [c["close"] for c in choppy(40)]
+        self.assertAlmostEqual(strategy.rsi_series(values, 14)[-1],
+                               features.rsi(values, 14), places=9)
+
+    def test_short_input_returns_all_none(self):
+        self.assertEqual(strategy.rsi_series([1.0, 2.0], 14), [None, None])
+
+    def test_streak_counts_from_the_end(self):
+        self.assertEqual(strategy.streak([50, 20, 20, 20], 30, below=True), 3)
+        self.assertEqual(strategy.streak([20, 20, 50], 30, below=True), 0)
+        self.assertEqual(strategy.streak([50, 80, 80], 70, below=False), 2)
+
+    def test_streak_stops_at_a_gap(self):
+        self.assertEqual(strategy.streak([None, 20, 20], 30, below=True), 2)
+
+
+class StrategySignalTests(unittest.TestCase):
+    def test_two_oversold_bars_give_a_long(self):
+        view = strategy.evaluate(oversold_series(2))
+        self.assertEqual(view["signal"], "long")
+        self.assertEqual(view["long_bars"], 2)
+        self.assertLess(view["rsi"], 30)
+
+    def test_two_overbought_bars_give_a_short(self):
+        view = strategy.evaluate(overbought_series(3))
+        self.assertEqual(view["signal"], "short")
+        self.assertGreater(view["rsi"], 70)
+
+    def test_one_bar_is_not_enough(self):
+        view = strategy.evaluate(oversold_series(1))
+        self.assertIsNone(view["signal"])
+        self.assertLessEqual(view["long_bars"], 1)
+
+    def test_a_long_stretch_is_not_chased(self):
+        # 2 + grace(2) mumdan uzun bir seri artik yeni bir sinyal degildir.
+        view = strategy.evaluate(oversold_series(6))
+        self.assertIsNone(view["signal"])
+        self.assertGreater(view["long_bars"], 4)
+
+    def test_the_open_bar_is_ignored(self):
+        closed = extend(choppy(), 2, -0.004)
+        # Acik mum sert yukari gitse bile sinyal kapanmis mumlardan gelir.
+        spike = dict(closed[-1], start=closed[-1]["start"] + 60000,
+                     close=closed[-1]["close"] * 1.05)
+        self.assertEqual(strategy.evaluate(closed + [spike])["signal"], "long")
+        self.assertEqual(strategy.evaluate(closed + [spike])["closed_bars"],
+                         len(closed))
+
+    def test_thresholds_are_configurable(self):
+        view = strategy.evaluate(oversold_series(2), {"oversold": 10.0})
+        self.assertIsNone(view["signal"])
+
+    def test_flat_market_gives_nothing(self):
+        view = strategy.evaluate(with_open_bar(choppy(80)))
+        self.assertIsNone(view["signal"])
+        self.assertEqual(view["long_bars"], 0)
+
+    def test_missing_history_is_safe(self):
+        view = strategy.evaluate(with_open_bar(choppy(5)))
+        self.assertIsNone(view["rsi"])
+        self.assertFalse(view["ready"])
+
+
+class FireOnceTests(unittest.TestCase):
+    def test_fires_on_a_fresh_bar(self):
+        view = strategy.evaluate(oversold_series(2))
+        fire, why = strategy.should_fire(view, {})
+        self.assertTrue(fire)
+        self.assertIn("RSI", why)
+
+    def test_does_not_fire_twice_for_the_same_bar(self):
+        view = strategy.evaluate(oversold_series(2))
+        fire, why = strategy.should_fire(view, {"last_fired_bar": view["bar"]})
+        self.assertFalse(fire)
+        self.assertIn("zaten", why)
+
+    def test_fires_again_on_the_next_bar(self):
+        view = strategy.evaluate(oversold_series(3))
+        older = view["bar"] - 60000
+        self.assertTrue(strategy.should_fire(view, {"last_fired_bar": older})[0])
+
+    def test_no_signal_never_fires(self):
+        view = strategy.evaluate(with_open_bar(choppy(80)))
+        self.assertFalse(strategy.should_fire(view, {})[0])
+
+
+class StrategyExitTests(unittest.TestCase):
+    def test_long_closes_when_rsi_returns_to_neutral(self):
+        done, why = strategy.exit_view({"rsi": 55.0}, {"side": "long"})
+        self.assertTrue(done)
+        self.assertIn("notre", why)
+
+    def test_long_is_held_below_neutral(self):
+        self.assertFalse(strategy.exit_view({"rsi": 41.0}, {"side": "long"})[0])
+
+    def test_short_closes_below_neutral(self):
+        self.assertTrue(strategy.exit_view({"rsi": 44.0}, {"side": "short"})[0])
+
+    def test_time_stop(self):
+        opened = 1_000_000
+        done, why = strategy.exit_view(
+            {"rsi": 35.0}, {"side": "long", "opened_ms": opened},
+            now_ms=opened + 31 * 60000)
+        self.assertTrue(done)
+        self.assertIn("Sure", why)
+
+    def test_no_rsi_yet_is_not_an_exit(self):
+        self.assertFalse(strategy.exit_view({"rsi": None}, {"side": "long"})[0])
+
+
+# --------------------------------------------------------------------------
+# Onay katmani (Jev veto eder, yon secmez)
+# --------------------------------------------------------------------------
+
+GOOD_CONFIRM = {
+    "take_setup": {"type": "choice", "choice": "take", "confidence": 0.8},
+    "setup_quality": {"type": "score", "score": 1.6,
+                      "probabilities": {"0": 0.1, "1": 0.3, "2": 0.6}},
+    "falling_knife": {"type": "noul", "noul": 0.15},
+    "crowding_risk": {"type": "noul", "noul": 0.2},
+}
+
+
+class ConfirmTests(unittest.TestCase):
+    def test_good_confirmation_opens(self):
+        signals = jev.normalize_confirm(GOOD_CONFIRM)
+        action = risk.confirm_decision("long", signals)
+        self.assertEqual(action["action"], "open")
+        self.assertEqual(action["side"], "long")
+
+    def test_skip_answer_vetoes(self):
+        answers = dict(GOOD_CONFIRM)
+        answers["take_setup"] = {"type": "choice", "choice": "skip", "confidence": 0.9}
+        action = risk.confirm_decision("long", jev.normalize_confirm(answers))
+        self.assertEqual(action["action"], "none")
+        self.assertIn("atla", action["reason"])
+
+    def test_falling_knife_vetoes(self):
+        answers = dict(GOOD_CONFIRM)
+        answers["falling_knife"] = {"type": "noul", "noul": 0.95}
+        action = risk.confirm_decision("long", jev.normalize_confirm(answers))
+        self.assertEqual(action["action"], "none")
+
+    def test_broken_answer_vetoes(self):
+        action = risk.confirm_decision("long", jev.normalize_confirm({}))
+        self.assertEqual(action["action"], "none")
+
+    def test_jev_cannot_invent_a_side(self):
+        # Kural sinyal vermediyse onay katmani islem actiramaz.
+        action = risk.confirm_decision(None, jev.normalize_confirm(GOOD_CONFIRM))
+        self.assertEqual(action["action"], "none")
+
+    def test_confirm_edge_is_bounded(self):
+        for answers in (GOOD_CONFIRM, {}):
+            value = risk.confirm_edge(jev.normalize_confirm(answers))
+            self.assertGreaterEqual(value, 0.0)
+            self.assertLessEqual(value, 1.0)
+
+    def test_confirm_questions_do_not_ask_for_a_direction(self):
+        self.assertNotIn("direction", jev.CONFIRM_QUESTIONS)
+        self.assertEqual(set(jev.CONFIRM_QUESTIONS["take_setup"]["criteria"]),
+                         {"take", "skip"})
+
+    def test_mock_confirm_is_deterministic(self):
+        state = {"market": {"return_6_bars_pct": -1.2}, "setup": {"side": "long"}}
+        self.assertEqual(jev.mock_confirm(state), jev.mock_confirm(state))
+
+    def test_mock_confirm_skips_a_hard_flush(self):
+        flush = {"market": {"return_6_bars_pct": -9.0}, "setup": {"side": "long"}}
+        signals = jev.normalize_confirm(jev.mock_confirm(flush))
+        self.assertFalse(signals["take"])
+
+
+# --------------------------------------------------------------------------
+# Bot: tam tur (rsi2)
+# --------------------------------------------------------------------------
 
 class TickTests(unittest.TestCase):
     def setUp(self):
         self.state = bot.load_state("/nonexistent.json", 1000.0)
         self.executor = bot.PaperExecutor(self.state)
 
-    def run_tick(self, data=None, symbols=("BTCUSDT",), policy=None):
+    def run_tick(self, data=None, symbols=("BTCUSDT",), policy=None, use_jev=True):
         return bot.tick(self.state, data or FakeData(), self.executor, "",
-                        symbols=list(symbols), policy=policy, mock=True)
+                        symbols=list(symbols), interval="1", policy=policy,
+                        mock=True, strategy="rsi2", use_jev=use_jev)
 
-    def test_uptrend_opens_a_long(self):
+    def test_two_oversold_bars_open_a_long(self):
         entries = self.run_tick()
         self.assertEqual(entries[0]["action"], "open")
         position = self.executor.position("BTCUSDT")
@@ -635,16 +866,60 @@ class TickTests(unittest.TestCase):
         self.assertLess(position["stop"], position["entry"])
         self.assertGreater(position["target"], position["entry"])
 
-    def test_position_is_kept_across_ticks(self):
-        self.run_tick()
-        opened = dict(self.executor.position("BTCUSDT"))
-        self.run_tick()
-        self.assertEqual(self.executor.position("BTCUSDT")["entry"], opened["entry"])
-
-    def test_entry_spacing_blocks_a_second_symbol(self):
-        entries = self.run_tick(symbols=("BTCUSDT", "ETHUSDT"))
+    def test_two_overbought_bars_open_a_short(self):
+        entries = self.run_tick(data=FakeData(overbought_series(3)))
         self.assertEqual(entries[0]["action"], "open")
-        self.assertEqual(entries[1]["action"], "blocked")
+        self.assertEqual(self.executor.position("BTCUSDT")["side"], "short")
+
+    def test_quiet_tick_writes_no_journal_line(self):
+        entries = self.run_tick(data=FakeData(with_open_bar(choppy(80))))
+        self.assertEqual(entries, [])
+        self.assertEqual(self.state["ticks"], [])
+
+    def test_quiet_tick_still_updates_the_watch_table(self):
+        self.run_tick(data=FakeData(with_open_bar(choppy(80))))
+        watch = self.state["watch"]["BTCUSDT"]
+        self.assertIsNotNone(watch["rsi"])
+        self.assertIsNone(watch["signal"])
+
+    def test_the_same_bar_does_not_fire_twice(self):
+        data = FakeData()
+        self.assertEqual(self.run_tick(data=data)[0]["action"], "open")
+        # Ayni mumla ikinci tik: yeni giris denemesi olmamali.
+        second = self.run_tick(data=data)
+        self.assertTrue(all(e["action"] != "open" for e in second))
+
+    def test_position_is_closed_when_rsi_returns_to_neutral(self):
+        self.run_tick()
+        self.assertIsNotNone(self.executor.position("BTCUSDT"))
+        entries = self.run_tick(data=FakeData(with_open_bar(choppy(80))))
+        self.assertEqual(entries[0]["action"], "close")
+        self.assertIsNone(self.executor.position("BTCUSDT"))
+        self.assertEqual(len(self.state["trades"]), 1)
+
+    def test_stop_is_taken_on_the_next_tick(self):
+        self.run_tick()
+        position = self.executor.position("BTCUSDT")
+        crash = oversold_series(2)
+        crash[-1] = dict(crash[-1], low=position["stop"] - 5,
+                         close=position["stop"] - 4)
+        entries = self.run_tick(data=FakeData(crash))
+        self.assertEqual(entries[0]["action"], "close")
+        self.assertEqual(self.state["trades"][-1]["reason"], "stop")
+        self.assertLess(self.state["trades"][-1]["pnl"], 0)
+
+    def test_no_jev_mode_opens_without_asking(self):
+        entries = self.run_tick(use_jev=False)
+        self.assertEqual(entries[0]["action"], "open")
+        self.assertNotIn("signals", entries[0])
+
+    def test_guardrail_blocks_and_is_logged(self):
+        self.state["consecutive_losses"] = 9
+        self.state["cooldown_until"] = bot.now_ms() + 600000
+        self.state["policy_values"] = risk.policy_for(1)
+        entries = self.run_tick()
+        self.assertEqual(entries[0]["action"], "blocked")
+        self.assertEqual(self.executor.open_count(), 0)
 
     def test_data_error_is_recorded_not_raised(self):
         class Broken(FakeData):
@@ -653,37 +928,91 @@ class TickTests(unittest.TestCase):
 
         entries = self.run_tick(data=Broken())
         self.assertEqual(entries[0]["action"], "error")
-        self.assertEqual(self.executor.position("BTCUSDT"), None)
+        self.assertIsNone(self.executor.position("BTCUSDT"))
 
-    def test_flat_market_does_not_trade(self):
-        flat = [dict(row, open=100.0, high=100.5, low=99.5, close=100.0)
-                for row in candles(240)]
-        entries = self.run_tick(data=FakeData(flat))
-        self.assertIn(entries[0]["action"], ("none", "blocked"))
-        self.assertEqual(self.executor.book["positions"], {})
+    def test_jev_error_blocks_the_entry(self):
+        def broken_ask(*args, **kwargs):
+            raise RuntimeError("HTTP 500")
 
-    def test_stop_is_taken_on_the_next_tick(self):
-        self.run_tick()
-        position = self.executor.position("BTCUSDT")
-        crash = candles(240)
-        crash[-1] = dict(crash[-1], low=position["stop"] - 5, close=position["stop"] - 4)
-        entries = self.run_tick(data=FakeData(crash))
-        self.assertEqual(entries[0]["action"], "close")
-        self.assertEqual(self.state["trades"][-1]["reason"], "stop")
-        self.assertLess(self.state["trades"][-1]["pnl"], 0)
+        original = jev.ask
+        jev.ask = broken_ask
+        try:
+            entries = bot.tick(self.state, FakeData(), self.executor, "key",
+                               ["BTCUSDT"], "1", None, False, "rsi2", None, True)
+        finally:
+            jev.ask = original
+        self.assertEqual(entries[0]["action"], "error")
+        self.assertEqual(self.executor.open_count(), 0)
 
-    def test_tick_records_signals_and_equity_curve(self):
+    def test_journal_keeps_the_rsi_that_caused_the_entry(self):
         self.run_tick()
         entry = self.state["ticks"][-1]
-        self.assertIn("signals", entry)
+        self.assertLess(entry["rsi"], 30)
+        self.assertEqual(entry["bars"], 2)
         self.assertIn("edge", entry)
-        self.assertEqual(len(self.state["equity_curve"]), 1)
-        self.assertIn("day_pnl_pct", self.state)
 
     def test_history_is_capped(self):
         self.state["ticks"] = [{"t": "x"}] * (bot.TICK_HISTORY + 20)
         self.run_tick()
         self.assertLessEqual(len(self.state["ticks"]), bot.TICK_HISTORY)
+
+    def test_equity_curve_does_not_grow_every_tick(self):
+        quiet = FakeData(with_open_bar(choppy(80)))
+        self.run_tick(data=quiet)
+        self.run_tick(data=quiet)
+        self.run_tick(data=quiet)
+        self.assertEqual(len(self.state["equity_curve"]), 1)
+
+
+class PublishTests(unittest.TestCase):
+    class FakeGit:
+        """git cagrilarini kaydeden sahte kosucu."""
+
+        def __init__(self, staged=True, push_fails=False):
+            self.calls = []
+            self.staged = staged
+            self.push_fails = push_fails
+            self.push_count = 0
+
+        def __call__(self, args, cwd=None, capture_output=False, text=False):
+            self.calls.append(args[1:])
+            class Result:
+                returncode = 0
+                stdout = ""
+                stderr = ""
+            result = Result()
+            if args[1] == "rev-parse":
+                result.stdout = "main\n"
+            if args[1] == "diff":
+                result.returncode = 1 if self.staged else 0
+            if args[1] == "push":
+                self.push_count += 1
+                if self.push_fails and self.push_count == 1:
+                    result.returncode = 1
+            return result
+
+    def test_only_the_state_file_is_committed(self):
+        git = self.FakeGit()
+        ok, _ = bot.publish("/repo/site/data/trader.json", "/repo", run=git)
+        self.assertTrue(ok)
+        self.assertEqual(git.calls[0], ["add", "--", "site/data/trader.json"])
+        commit = [c for c in git.calls if c[0] == "commit"][0]
+        self.assertEqual(commit[-1], "site/data/trader.json")
+
+    def test_no_change_means_no_commit(self):
+        git = self.FakeGit(staged=False)
+        ok, detail = bot.publish("/repo/site/data/trader.json", "/repo", run=git)
+        self.assertFalse(ok)
+        self.assertEqual(detail, "degisiklik yok")
+        self.assertNotIn("commit", [c[0] for c in git.calls])
+
+    def test_failed_push_is_retried_after_a_rebase(self):
+        git = self.FakeGit(push_fails=True)
+        ok, _ = bot.publish("/repo/site/data/trader.json", "/repo", run=git)
+        self.assertTrue(ok)
+        self.assertIn(["pull", "--rebase", "--autostash", "origin", "main"], git.calls)
+        self.assertIn(["push", "-u", "origin", "main"], git.calls)
+        self.assertEqual(git.push_count, 2)
 
 
 class StateTests(unittest.TestCase):
@@ -766,7 +1095,35 @@ class SafetyTests(unittest.TestCase):
         policy = bot.build_policy(args)
         self.assertEqual(policy["max_leverage"], 2)
         self.assertEqual(policy["min_edge"], 0.5)
-        self.assertEqual(policy["risk_per_trade"], risk.POLICY["risk_per_trade"])
+        # Ezilmeyen alan, 1 dakikalik mumda scalp on ayarindan gelir.
+        self.assertEqual(policy["risk_per_trade"], risk.SCALP["risk_per_trade"])
+
+    def test_minute_interval_selects_the_scalp_preset(self):
+        scalp = risk.policy_for(1)
+        hourly = risk.policy_for(60)
+        self.assertEqual(scalp["min_minutes_between_entries"],
+                         risk.SCALP["min_minutes_between_entries"])
+        self.assertEqual(hourly["min_minutes_between_entries"],
+                         risk.POLICY["min_minutes_between_entries"])
+        self.assertLess(scalp["take_profit_r"], hourly["take_profit_r"])
+
+    def test_strategy_config_overrides(self):
+        args = bot.parse_args(["--oversold", "25", "--confirm-bars", "3"])
+        config = bot.build_config(args)
+        self.assertEqual(config["oversold"], 25)
+        self.assertEqual(config["confirm_bars"], 3)
+        self.assertEqual(config["overbought"], strategy.CONFIG["overbought"])
+
+    def test_no_jev_runs_without_a_key(self):
+        previous = os.environ.pop("TYPESAFE_API_KEY", None)
+        try:
+            with tempfile.TemporaryDirectory() as folder:
+                code = bot.main(["--offline", "--no-jev", "--once", "--state",
+                                 os.path.join(folder, "s.json")])
+            self.assertEqual(code, 0)
+        finally:
+            if previous is not None:
+                os.environ["TYPESAFE_API_KEY"] = previous
 
     def test_dry_run_exchange_executor_sends_nothing(self):
         opener = RecordingOpener([])

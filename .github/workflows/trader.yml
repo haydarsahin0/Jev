@@ -1,17 +1,22 @@
-name: Jev Trader
+name: Jev Trader (tek tik)
 
+# Dakikalik strateji zamanlanmis kosuyla calismaz: GitHub Actions cron'u en
+# sik 5 dakikada bir tetiklenir, uzerine kuyruk gecikmesi biner ve her kosu
+# yaklasik bir dakikasini kurulumla harcar. 1 dakikalik RSI kurali icin bot
+# surekli calismali (kendi makineniz veya bir VPS):
+#
+#     python trader/bot.py --mode demo --loop 60 --publish
+#
+# Buradaki is yalnizca **elle** calisir: anahtarlarin ve baglantinin
+# dogrulugunu Actions uzerinden tek bir tikle sinamak icindir.
 on:
-  schedule:
-    # Saat basi. 1 saatlik mumla calisiyoruz; daha sik tik hem Actions
-    # dakikasi hem Jev istegi harcar, karari degistirmez.
-    - cron: "5 * * * *"
   workflow_dispatch:
     inputs:
       mode:
         description: "Yurutme modu"
         required: false
         type: choice
-        options: [paper, testnet, live]
+        options: [paper, demo, testnet, live]
         default: paper
       symbols:
         description: "Semboller (virgulle)"
@@ -19,7 +24,7 @@ on:
         type: string
         default: ""
       interval:
-        description: "Mum araligi, dakika (bos = 60)"
+        description: "Mum araligi, dakika (bos = 1)"
         required: false
         type: string
         default: ""
@@ -29,25 +34,21 @@ on:
         type: boolean
         default: false
       dry_run:
-        description: "Borsa modunda emri hesapla ama gonderme"
+        description: "Emri hesapla ama gonderme"
         required: false
         type: boolean
-        default: false
+        default: true
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
-# Ayni anda tek tik. Iptal etmiyoruz: emir gonderilmisken kesilmek,
-# durum dosyasi guncellenmeden pozisyon acik kalmasi demek olurdu.
 concurrency:
   group: jev-trader
   cancel-in-progress: false
 
 jobs:
   trade:
-    name: Tik calistir
+    name: Tek tik
     runs-on: ubuntu-latest
     steps:
       - name: Depoyu al
@@ -68,28 +69,19 @@ jobs:
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
           BYBIT_API_KEY: ${{ secrets.BYBIT_API_KEY }}
           BYBIT_API_SECRET: ${{ secrets.BYBIT_API_SECRET }}
-          # Gercek para ancak bu degisken repoda "yes" ise acilir.
+          # Gercek para ancak bu depo degiskeni "yes" ise acilir.
           BYBIT_ALLOW_LIVE: ${{ vars.BYBIT_ALLOW_LIVE }}
-          # Zamanlanmis kosular icin mod: repo degiskeni, yoksa paper.
-          TRADER_MODE: ${{ inputs.mode || vars.TRADER_MODE || 'paper' }}
-          TRADER_SYMBOLS: ${{ inputs.symbols || vars.TRADER_SYMBOLS }}
-          TRADER_INTERVAL: ${{ inputs.interval || vars.TRADER_INTERVAL }}
+          TRADER_MODE: ${{ inputs.mode }}
+          TRADER_SYMBOLS: ${{ inputs.symbols }}
+          TRADER_INTERVAL: ${{ inputs.interval }}
           TRADER_MOCK: ${{ inputs.mock }}
           TRADER_DRY_RUN: ${{ inputs.dry_run }}
         run: |
           args="--mode $TRADER_MODE --once"
-          if [ -n "$TRADER_SYMBOLS" ]; then
-            args="$args --symbols $TRADER_SYMBOLS"
-          fi
-          if [ -n "$TRADER_INTERVAL" ]; then
-            args="$args --interval $TRADER_INTERVAL"
-          fi
-          if [ "$TRADER_MOCK" = "true" ]; then
-            args="$args --mock"
-          fi
-          if [ "$TRADER_DRY_RUN" = "true" ]; then
-            args="$args --dry-run"
-          fi
+          if [ -n "$TRADER_SYMBOLS" ]; then args="$args --symbols $TRADER_SYMBOLS"; fi
+          if [ -n "$TRADER_INTERVAL" ]; then args="$args --interval $TRADER_INTERVAL"; fi
+          if [ "$TRADER_MOCK" = "true" ]; then args="$args --mock"; fi
+          if [ "$TRADER_DRY_RUN" = "true" ]; then args="$args --dry-run"; fi
           python trader/bot.py $args
 
       - name: Durumu commit et
@@ -103,7 +95,7 @@ jobs:
             echo "Durum degismedi, commit atlandi."
             exit 0
           fi
-          git commit -m "trader: $(date -u +'%Y-%m-%d %H:%M') tiki"
+          git commit -m "trader: elle calistirilan tik"
 
           for attempt in 1 2 3 4 5; do
             if git push origin "HEAD:${GITHUB_REF_NAME}"; then
@@ -117,27 +109,3 @@ jobs:
 
           echo "Push 5 denemede basarisiz oldu." >&2
           exit 1
-
-      - name: Pages yapilandirmasi
-        uses: actions/configure-pages@v5
-
-      - name: site/ klasorunu artifact olarak yukle
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
-
-  deploy:
-    name: GitHub Pages'e yayinla
-    needs: trade
-    runs-on: ubuntu-latest
-    # Pages dagitimi tek sirada ilerlesin (arXiv Radar ile carpismasin).
-    concurrency:
-      group: pages-deploy
-      cancel-in-progress: false
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Yayinla
-        id: deployment
-        uses: actions/deploy-pages@v4

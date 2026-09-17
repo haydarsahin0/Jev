@@ -10,9 +10,10 @@ konu için tek seçim. Site bu sinyalleri sizin ağırlıklarınızla tek bir pu
 çevirir ve listeyi ona göre sıralar.
 
 > **Depoda ikinci bir sistem var:** [**Jev Trader**](trader/README.md) — Bybit
-> vadeli işlemlerinde aynı deseni kullanan kaldıraçlı bir bot. Jev'e yön,
-> kanaat ve risk sorar; emri `trader/risk.py` içindeki deterministik politika
-> hesaplar. Varsayılan mod kâğıt (emir gönderilmez); gerçek para ancak
+> vadeli işlemlerinde çalışan kaldıraçlı bir bot. Kural dakikalık RSI(14):
+> iki kapanmış mum üst üste 30'un altındaysa long, 70'in üstündeyse short.
+> Yönü kural belirler, **Jev yalnızca veto eder**. Varsayılan mod kâğıt (emir
+> gönderilmez), demo para için `--mode demo`; gerçek para ancak
 > `BYBIT_ALLOW_LIVE=yes` ile açılır. Panel: `site/trader.html`.
 
 ---

@@ -302,3 +302,126 @@ def mock_answers(state, has_position=False):
     if has_position:
         answers["exit_now"] = {"type": "noul", "noul": round(0.10 + 0.45 * unit(8), 3)}
     return answers
+
+
+# --------------------------------------------------------------------------
+# Onay soru seti: mekanik kural tetikledikten SONRA sorulur
+# --------------------------------------------------------------------------
+#
+# Burada yon sorulmaz. Yonu kural belirler (RSI-2). Jev'in isi tek bir sey:
+# bu **ornegi** almaya deger mi, yoksa atlanmali mi? Trend sorulari burada
+# yaniltici olurdu -- asiri satimdan alis zaten trende karsi bir islemdir.
+
+SETUP_QUALITY_LEVELS = [
+    "Poor: this looks like the start of a sustained move against the entry, "
+    "not a stretch that snaps back",
+    "Acceptable: an ordinary short-term stretch where mean reversion is plausible",
+    "Good: a stretched move showing exhaustion -- fading momentum, shrinking "
+    "bars or a level that has held before",
+]
+
+TAKE_OR_SKIP = {
+    "take": "Take this instance of the rule",
+    "skip": "Skip this instance: the context makes it a poor version of the setup",
+}
+
+CONFIRM_QUESTIONS = {
+    "take_setup": {
+        "type": "choice",
+        "instructions": (
+            "A mechanical rule in `setup` has fired: RSI stayed beyond its "
+            "threshold for the required number of closed bars, so the side is "
+            "already decided. Using `market` and `setup`, should this instance "
+            "be taken or skipped? Judge the instance, not the rule."
+        ),
+        "criteria": TAKE_OR_SKIP,
+    },
+    "setup_quality": {
+        "type": "score",
+        "instructions": (
+            "How good is this instance of the mean-reversion setup described "
+            "by `setup` and `market`?"
+        ),
+        "criteria": SETUP_QUALITY_LEVELS,
+    },
+    "falling_knife": {
+        "type": "noul",
+        "instructions": (
+            "Is price in a strong one-way move that is likely to keep running "
+            "against this entry -- a trend or news-driven flush rather than a "
+            "stretch that mean-reverts?"
+        ),
+    },
+    "crowding_risk": {
+        "type": "noul",
+        "instructions": (
+            "Does `market` look crowded or stretched -- extreme funding, an "
+            "exhausted move or unusual volume -- so that a sharp move against "
+            "this entry is likely?"
+        ),
+    },
+}
+
+CONFIRM_DEFAULTS = {
+    "setup_quality": 0.0,
+    "falling_knife": 1.0,
+    "crowding_risk": 1.0,
+}
+
+
+def normalize_confirm(answers):
+    """Onay yanitini sinyallere cevirir.
+
+    Eksik veya bozuk yanit **atla** demektir: onay katmani yalnizca hayir
+    diyebildigi icin, cevabin okunamamasi islem acmamakla sonuclanir.
+    """
+    signals = dict(CONFIRM_DEFAULTS)
+    signals["take"] = False
+    signals["take_confidence"] = 0.0
+
+    answer = answers.get("setup_quality")
+    if isinstance(answer, dict) and isinstance(answer.get("score"), (int, float)):
+        signals["setup_quality"] = clamp01(float(answer["score"]) / max_level(answer))
+
+    for key in ("falling_knife", "crowding_risk"):
+        answer = answers.get(key)
+        if isinstance(answer, dict) and isinstance(answer.get("noul"), (int, float)):
+            signals[key] = clamp01(float(answer["noul"]))
+
+    choice = answers.get("take_setup")
+    if isinstance(choice, dict):
+        name = choice.get("choice")
+        if isinstance(name, str) and name.lower() == "take":
+            signals["take"] = True
+            signals["take_confidence"] = clamp01(_float(choice.get("confidence")))
+    return signals
+
+
+def mock_confirm(state):
+    """Anahtarsiz deneme icin onay yaniti; durumdan turer, rastgele degil."""
+    payload = {"market": state.get("market", {}), "setup": state.get("setup", {})}
+    seed = hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).digest()
+
+    def unit(index):
+        return seed[index] / 255.0
+
+    market = payload["market"]
+    setup = payload["setup"]
+    side = setup.get("side")
+    change = market.get("return_6_bars_pct")
+    change = 0.0 if not isinstance(change, (int, float)) else float(change)
+    # Girise karsi guclu bir hareket varsa bicak riski yuksek sayilir.
+    against = (-change if side == "long" else change)
+    knife = clamp01(0.08 + 0.22 * unit(0) + min(0.45, max(0.0, against) * 0.12))
+    quality = 2.0 - 1.4 * knife - 0.3 * unit(1)
+
+    return {
+        "take_setup": {"type": "choice",
+                       "choice": "take" if knife < 0.50 else "skip",
+                       "confidence": round(0.55 + 0.35 * unit(2), 3)},
+        "setup_quality": {"type": "score", "score": round(max(0.0, quality), 2),
+                          "probabilities": {"0": 0.2, "1": 0.4, "2": 0.4}},
+        "falling_knife": {"type": "noul", "noul": round(knife, 3)},
+        "crowding_risk": {"type": "noul",
+                          "noul": round(clamp01(0.08 + 0.30 * unit(3)), 3)},
+    }

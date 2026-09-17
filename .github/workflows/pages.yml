@@ -1,0 +1,44 @@
+name: Paneli yayinla
+
+# Bot durum dosyasini push ettiginde site yeniden yayinlanir.
+#
+# Not: GITHUB_TOKEN ile yapilan push'lar workflow tetiklemez. Yani arXiv
+# Radar'in kendi push'u burayi calistirmaz (zaten kendi deploy adimi var);
+# burasi sizin makinenizdeki botun `--publish` ile attigi push icindir.
+on:
+  push:
+    paths:
+      - "site/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: GitHub Pages'e yayinla
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Depoyu al
+        uses: actions/checkout@v4
+
+      - name: Pages yapilandirmasi
+        uses: actions/configure-pages@v5
+
+      - name: site/ klasorunu artifact olarak yukle
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Yayinla
+        id: deployment
+        uses: actions/deploy-pages@v4
