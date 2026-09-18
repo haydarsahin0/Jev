@@ -1,0 +1,305 @@
+{
+ "format": "jev-soccer-model/1",
+ "league": "en.1",
+ "league_name": "İngiltere Premier Lig",
+ "trained_at": "2026-09-18T13:13:26Z",
+ "as_of": "2026-09-18",
+ "dc": {
+  "format": "jev-soccer-dc/1",
+  "as_of": "2026-09-18",
+  "decay": 0.003,
+  "ridge": 0.001,
+  "home_advantage": 0.2694790034563628,
+  "rho": -0.12000000000000002,
+  "matches": 3070,
+  "effective_matches": 301.20062112584264,
+  "log_likelihood_per_match": -1.6938340389256463,
+  "teams": {
+   "AFC Bournemouth": {
+    "attack": 0.22944652567026275,
+    "defence": 0.028417575757376683
+   },
+   "Arsenal FC": {
+    "attack": 0.4078880727960995,
+    "defence": 0.6851162374103408
+   },
+   "Aston Villa FC": {
+    "attack": 0.19396178407887815,
+    "defence": 0.025232725574368717
+   },
+   "Brentford FC": {
+    "attack": 0.23040171185171116,
+    "defence": 0.024384343426067892
+   },
+   "Brighton & Hove Albion FC": {
+    "attack": 0.2510394317151045,
+    "defence": 0.026043998671025463
+   },
+   "Burnley FC": {
+    "attack": -0.17028170886722235,
+    "defence": -0.29080255949616474
+   },
+   "Cardiff City": {
+    "attack": -0.03171474852548331,
+    "defence": 0.005120498169542534
+   },
+   "Chelsea FC": {
+    "attack": 0.3175356998376796,
+    "defence": -0.03196911332371162
+   },
+   "Coventry City FC": {
+    "attack": -1.3475161169288663,
+    "defence": 0.05527404499663284
+   },
+   "Crystal Palace FC": {
+    "attack": 0.04693466652692367,
+    "defence": -0.0707677808988958
+   },
+   "Everton FC": {
+    "attack": 0.03146656648939998,
+    "defence": 0.09640261508336957
+   },
+   "Fulham FC": {
+    "attack": 0.04735741034675206,
+    "defence": -0.029913488498453086
+   },
+   "Huddersfield Town": {
+    "attack": -0.034269411335947596,
+    "defence": -0.0068832597701030535
+   },
+   "Hull City AFC": {
+    "attack": -0.20082673131513074,
+    "defence": 1.7088800716411614
+   },
+   "Ipswich Town FC": {
+    "attack": -0.11521494592333494,
+    "defence": -0.436448300284379
+   },
+   "Leeds United FC": {
+    "attack": 0.07369195643606792,
+    "defence": 0.06391065122863092
+   },
+   "Leicester City FC": {
+    "attack": -0.3078273971795889,
+    "defence": -0.31493265514356295
+   },
+   "Liverpool FC": {
+    "attack": 0.41022121303131015,
+    "defence": 0.042420548019698696
+   },
+   "Luton Town FC": {
+    "attack": 0.09984604556883499,
+    "defence": -0.3853819315443171
+   },
+   "Manchester City FC": {
+    "attack": 0.4979853957656,
+    "defence": 0.38694172932128945
+   },
+   "Manchester United FC": {
+    "attack": 0.35665862110049207,
+    "defence": -0.013281600844730637
+   },
+   "Newcastle United FC": {
+    "attack": 0.28580338720258225,
+    "defence": -0.013542931559825541
+   },
+   "Norwich City FC": {
+    "attack": -0.18919214587643526,
+    "defence": -0.19371616103914377
+   },
+   "Nottingham Forest FC": {
+    "attack": 0.07822981998546329,
+    "defence": 0.07619410853947588
+   },
+   "Sheffield United FC": {
+    "attack": -0.2252906470468563,
+    "defence": -0.508063049534949
+   },
+   "Southampton FC": {
+    "attack": -0.5344199131086586,
+    "defence": -0.39194013741662104
+   },
+   "Sunderland AFC": {
+    "attack": -0.05120343365929234,
+    "defence": 0.10185100100855589
+   },
+   "Tottenham Hotspur FC": {
+    "attack": 0.041418187778636414,
+    "defence": -0.11533058586093639
+   },
+   "Watford FC": {
+    "attack": -0.1225420334929177,
+    "defence": -0.1506766962743822
+   },
+   "West Bromwich Albion FC": {
+    "attack": -0.04621754832695723,
+    "defence": -0.057968135104764035
+   },
+   "West Ham United FC": {
+    "attack": 0.05502924602762281,
+    "defence": -0.13818062023741817
+   },
+   "Wolverhampton Wanderers FC": {
+    "attack": -0.2783989606227296,
+    "defence": -0.17639114201517897
+   }
+  }
+ },
+ "elo": {
+  "k": 20.0,
+  "home_advantage": 60.0,
+  "ratings": {
+   "Manchester United FC": 1586.0714081377153,
+   "Leicester City FC": 1335.5629651546749,
+   "AFC Bournemouth": 1557.535524947689,
+   "Cardiff City": 1397.804987906185,
+   "Fulham FC": 1481.3888977301433,
+   "Crystal Palace FC": 1481.8183073739417,
+   "Huddersfield Town": 1302.9089839739531,
+   "Chelsea FC": 1538.3955661572372,
+   "Newcastle United FC": 1533.7920453264892,
+   "Tottenham Hotspur FC": 1439.5452859557872,
+   "Watford FC": 1318.807848153571,
+   "Brighton & Hove Albion FC": 1539.8874465225106,
+   "Wolverhampton Wanderers FC": 1366.224377663012,
+   "Everton FC": 1516.9214950390115,
+   "Arsenal FC": 1693.5763231629464,
+   "Manchester City FC": 1677.5072289399204,
+   "Liverpool FC": 1583.3171924352396,
+   "West Ham United FC": 1467.1476401298614,
+   "Southampton FC": 1255.1696582282611,
+   "Burnley FC": 1326.3111504387389,
+   "Norwich City FC": 1299.704401225381,
+   "Sheffield United FC": 1267.0308211245913,
+   "Aston Villa FC": 1537.6549819078928,
+   "Leeds United FC": 1507.9952661365928,
+   "West Bromwich Albion FC": 1383.149235104482,
+   "Brentford FC": 1539.553326418627,
+   "Nottingham Forest FC": 1511.4033063480667,
+   "Luton Town FC": 1370.2091639106698,
+   "Ipswich Town FC": 1377.7651387425299,
+   "Sunderland AFC": 1507.159996445679,
+   "Coventry City FC": 1477.935054771135,
+   "Hull City AFC": 1526.1202855842819
+  }
+ },
+ "blend": {
+  "weight": 0.3,
+  "gate": 0.5,
+  "max_weight": 0.75,
+  "temperature": 1.0,
+  "baseline_temperature": 1.2,
+  "total_weight": 0.5
+ },
+ "hyperparameter_search": [
+  {
+   "decay": 0.003,
+   "ridge": 0.001,
+   "log_loss": 1.014574603902063,
+   "rps": 0.20811224268139814,
+   "matches": 790
+  },
+  {
+   "decay": 0.005,
+   "ridge": 0.001,
+   "log_loss": 1.0148832986980143,
+   "rps": 0.2077297974267793,
+   "matches": 790
+  },
+  {
+   "decay": 0.005,
+   "ridge": 0.003,
+   "log_loss": 1.0163602193421581,
+   "rps": 0.20830159859070044,
+   "matches": 790
+  },
+  {
+   "decay": 0.003,
+   "ridge": 0.003,
+   "log_loss": 1.0172159269914398,
+   "rps": 0.20899168925675293,
+   "matches": 790
+  },
+  {
+   "decay": 0.0018,
+   "ridge": 0.001,
+   "log_loss": 1.0181104688599896,
+   "rps": 0.2093890734078772,
+   "matches": 790
+  }
+ ],
+ "backtest": {
+  "label": "taban",
+  "matches": 790,
+  "log_loss": 1.0123632338610131,
+  "brier": 0.6067151988172176,
+  "rps": 0.20738785765170664,
+  "accuracy": 0.49240506329113926,
+  "uniform_log_loss": 1.0986122886681098,
+  "outcome_rates": [
+   0.41645569620253164,
+   0.2620253164556962,
+   0.32151898734177214
+  ],
+  "skill_vs_uniform": 0.07850727294490734,
+  "calibration": [
+   {
+    "range": "0.0-0.1",
+    "count": 34,
+    "predicted": 0.07641452704773982,
+    "observed": 0.11764705882352941
+   },
+   {
+    "range": "0.1-0.2",
+    "count": 236,
+    "predicted": 0.15629816496400092,
+    "observed": 0.1228813559322034
+   },
+   {
+    "range": "0.2-0.3",
+    "count": 1008,
+    "predicted": 0.2589581142623737,
+    "observed": 0.26884920634920634
+   },
+   {
+    "range": "0.3-0.4",
+    "count": 445,
+    "predicted": 0.3404055848610578,
+    "observed": 0.3325842696629214
+   },
+   {
+    "range": "0.4-0.5",
+    "count": 328,
+    "predicted": 0.4486704802900662,
+    "observed": 0.4146341463414634
+   },
+   {
+    "range": "0.5-0.6",
+    "count": 180,
+    "predicted": 0.5415815372361871,
+    "observed": 0.5944444444444444
+   },
+   {
+    "range": "0.6-0.7",
+    "count": 100,
+    "predicted": 0.6420314336066969,
+    "observed": 0.63
+   },
+   {
+    "range": "0.7-0.8",
+    "count": 35,
+    "predicted": 0.7371753378016555,
+    "observed": 0.8
+   },
+   {
+    "range": "0.8-0.9",
+    "count": 4,
+    "predicted": 0.8381000719615631,
+    "observed": 1.0
+   }
+  ],
+  "calibration_error": 0.020028618641760604,
+  "from": "2024-08-01",
+  "to": null
+ }
+}

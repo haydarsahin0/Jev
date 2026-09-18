@@ -1,0 +1,135 @@
+name: Skor Tahmini
+
+# Bilerek yalnızca elle çalıştırılır: her maç bir Jev isteği demek, yani
+# para demek. Otomatik çalışmasını istiyorsanız aşağıdaki iki satırı açın
+# (Pazartesi ve Perşembe 06:00 UTC = 09:00 TSİ):
+#
+# on:
+#   schedule:
+#     - cron: "0 6 * * 1,4"
+on:
+  workflow_dispatch:
+    inputs:
+      league:
+        description: "Lig kodu (tr.1, en.1, es.1 …)"
+        required: true
+        type: string
+        default: "tr.1"
+      seasons:
+        description: "Kaç sezon indirilsin"
+        required: false
+        type: string
+        default: "6"
+      days:
+        description: "Kaç günlük fikstür tahmin edilsin"
+        required: false
+        type: string
+        default: "7"
+      retrain:
+        description: "Modeli yeniden eğit (veri yenilendiyse gerekir)"
+        required: false
+        type: boolean
+        default: true
+      search:
+        description: "Hiperparametre araması da yapılsın (yavaş)"
+        required: false
+        type: boolean
+        default: false
+      mock:
+        description: "Jev'i çağırma, sahte sinyal üret (ücretsiz deneme)"
+        required: false
+        type: boolean
+        default: false
+      no_jev:
+        description: "Yalnızca istatistik model (Jev hiç çağrılmaz)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: skor-tahmini
+  cancel-in-progress: false
+
+jobs:
+  predict:
+    name: Veriyi yenile, eğit ve bülteni tahmin et
+    runs-on: ubuntu-latest
+    steps:
+      - name: Depoyu al
+        uses: actions/checkout@v4
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Birim testleri
+        run: python -m unittest tests.test_soccer -v
+
+      - name: Maç verisini indir
+        env:
+          LEAGUE: ${{ inputs.league }}
+          SEASONS: ${{ inputs.seasons }}
+        run: python -m pipeline.soccer fetch --league "$LEAGUE" --seasons "$SEASONS"
+
+      - name: Modeli eğit
+        if: ${{ inputs.retrain }}
+        env:
+          LEAGUE: ${{ inputs.league }}
+          SEARCH: ${{ inputs.search }}
+        run: |
+          args=""
+          if [ "$SEARCH" = "true" ]; then
+            args="--search"
+          fi
+          python -m pipeline.soccer train --league "$LEAGUE" $args
+
+      - name: Bülteni tahmin et
+        env:
+          # Anahtar yalnızca bu adımın ortamında bulunur; loglara, JSON
+          # çıktısına veya siteye hiçbir şekilde yazılmaz.
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+          LEAGUE: ${{ inputs.league }}
+          DAYS: ${{ inputs.days }}
+          MOCK: ${{ inputs.mock }}
+          NO_JEV: ${{ inputs.no_jev }}
+        run: |
+          args=""
+          if [ "$MOCK" = "true" ]; then
+            args="$args --mock"
+          fi
+          if [ "$NO_JEV" = "true" ]; then
+            args="$args --no-jev"
+          fi
+          python -m pipeline.soccer predict --league "$LEAGUE" --days "$DAYS" $args
+
+      - name: Değişiklikleri commit et
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Yalnızca futbol veri klasörü commit edilir, başka hiçbir dosya değil.
+          git add --all site/data/football
+
+          if git diff --cached --quiet; then
+            echo "Yeni veri yok, commit atlandı."
+            exit 0
+          fi
+
+          git commit -m "skor: $(date -u +%Y-%m-%d) bülteni"
+
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              echo "Push başarılı."
+              exit 0
+            fi
+            echo "Push başarısız (deneme $attempt), rebase ile tekrar deneniyor…"
+            sleep $((attempt * 2))
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+          done
+
+          echo "Push 5 denemede başarısız oldu." >&2
+          exit 1

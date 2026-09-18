@@ -1,0 +1,301 @@
+{
+ "format": "jev-soccer-model/1",
+ "league": "tr.1",
+ "league_name": "Türkiye Süper Lig",
+ "trained_at": "2026-09-18T13:16:07Z",
+ "as_of": "2026-09-18",
+ "dc": {
+  "format": "jev-soccer-dc/1",
+  "as_of": "2026-09-18",
+  "decay": 0.0018,
+  "ridge": 0.003,
+  "home_advantage": 0.33918483456239684,
+  "rho": -0.12000000000000002,
+  "matches": 1469,
+  "effective_matches": 180.50968094868006,
+  "log_likelihood_per_match": -1.6666570767868503,
+  "teams": {
+   "Adana Demirspor": {
+    "attack": -0.28285978519194216,
+    "defence": -0.5139160318866861
+   },
+   "Akhisar Belediyespor": {
+    "attack": -0.053518322136914195,
+    "defence": -0.023977505060452237
+   },
+   "Alanyaspor": {
+    "attack": -0.03245381932803935,
+    "defence": 0.10420438301141434
+   },
+   "Antalyaspor": {
+    "attack": -0.16120646708325503,
+    "defence": -0.18340844721328364
+   },
+   "Atiker Konyaspor": {
+    "attack": -0.03483934431031768,
+    "defence": 0.06603832376754334
+   },
+   "BB Erzurumspor": {
+    "attack": -0.06749507869057819,
+    "defence": -0.08694554173464918
+   },
+   "Beşiktaş": {
+    "attack": 0.2370543701957636,
+    "defence": 0.19795204391892265
+   },
+   "Bodrum FK": {
+    "attack": -0.5874826857944009,
+    "defence": 0.22587036465624166
+   },
+   "Bursaspor": {
+    "attack": -0.08140267407092405,
+    "defence": 0.06619336586882009
+   },
+   "Denizlispor": {
+    "attack": -0.18477541350897364,
+    "defence": -0.15741010817555057
+   },
+   "Eyüpspor": {
+    "attack": -0.07132713255526296,
+    "defence": 0.05655564508079034
+   },
+   "Fatih Karagümrük": {
+    "attack": -0.17848412042497996,
+    "defence": -0.22818921316285873
+   },
+   "Fenerbahçe": {
+    "attack": 0.5073567581106253,
+    "defence": 0.2552063728087499
+   },
+   "Galatasaray": {
+    "attack": 0.538204102105092,
+    "defence": 0.6783510690224297
+   },
+   "Gaziantep FK": {
+    "attack": 0.01680432271308384,
+    "defence": -0.02692414665926858
+   },
+   "Gazişehir Gaziantep FK": {
+    "attack": 0.024505147394875013,
+    "defence": -0.014394400140872593
+   },
+   "Gençlerbirliği": {
+    "attack": -0.2427727918153983,
+    "defence": -0.054669638224506864
+   },
+   "Göztepe": {
+    "attack": 0.12797676920495576,
+    "defence": 0.15238852507160605
+   },
+   "Hatayspor": {
+    "attack": 0.08301434370830803,
+    "defence": -0.34099331568901076
+   },
+   "Kasımpaşa SK": {
+    "attack": 0.16338992961965493,
+    "defence": -0.15195658760354486
+   },
+   "Kayserispor": {
+    "attack": -0.021864355462217593,
+    "defence": -0.2035572189110651
+   },
+   "Kocaelispor": {
+    "attack": -0.24183203501353812,
+    "defence": 0.10139962721779379
+   },
+   "Konyaspor": {
+    "attack": 0.0756270474018322,
+    "defence": -0.03145709034860547
+   },
+   "MKE Ankaragücü": {
+    "attack": -0.08238766826222918,
+    "defence": -0.08600553593428682
+   },
+   "Samsunspor": {
+    "attack": 0.13430867558119763,
+    "defence": 0.15199234984764526
+   },
+   "Sivasspor": {
+    "attack": 0.014490891815837181,
+    "defence": -0.13342515039710473
+   },
+   "Trabzonspor": {
+    "attack": 0.20226926550939278,
+    "defence": 0.2254161955547162
+   },
+   "Yeni Malatyaspor": {
+    "attack": -0.020112340366467432,
+    "defence": 0.0024292855777542643
+   },
+   "Çaykur Rizespor": {
+    "attack": 0.07584966869478911,
+    "defence": -0.08216052204423276
+   },
+   "İstanbul Başakşehir": {
+    "attack": 0.1439627419600314,
+    "defence": 0.03539290178155114
+   }
+  }
+ },
+ "elo": {
+  "k": 20.0,
+  "home_advantage": 60.0,
+  "ratings": {
+   "MKE Ankaragücü": 1402.2503721728124,
+   "Galatasaray": 1762.7877425217694,
+   "Fenerbahçe": 1701.8900490297485,
+   "Bursaspor": 1458.725486633857,
+   "Sivasspor": 1471.2230675779958,
+   "Alanyaspor": 1505.8159896875345,
+   "Çaykur Rizespor": 1496.2681490864572,
+   "Kasımpaşa SK": 1488.1041013929673,
+   "Atiker Konyaspor": 1507.6384847661207,
+   "BB Erzurumspor": 1424.657690352291,
+   "Beşiktaş": 1582.2956297140329,
+   "Akhisar Belediyespor": 1394.1710003726243,
+   "Göztepe": 1556.0981280235937,
+   "Yeni Malatyaspor": 1454.0744760938908,
+   "İstanbul Başakşehir": 1531.252934125955,
+   "Trabzonspor": 1609.2551806814104,
+   "Kayserispor": 1460.7821154048725,
+   "Antalyaspor": 1434.563411668652,
+   "Denizlispor": 1336.0887520144092,
+   "Gençlerbirliği": 1404.8197424861078,
+   "Konyaspor": 1486.6663904521374,
+   "Gazişehir Gaziantep FK": 1519.931669315733,
+   "Gaziantep FK": 1513.4136013969928,
+   "Fatih Karagümrük": 1438.6490833833116,
+   "Hatayspor": 1414.4365157126106,
+   "Adana Demirspor": 1306.7515571935087,
+   "Eyüpspor": 1450.3810100986811,
+   "Samsunspor": 1577.713270040733,
+   "Bodrum FK": 1473.870178278479,
+   "Kocaelispor": 1483.6305536268696
+  }
+ },
+ "blend": {
+  "weight": 0.3,
+  "gate": 0.5,
+  "max_weight": 0.75,
+  "temperature": 1.0,
+  "baseline_temperature": 1.0,
+  "total_weight": 0.5
+ },
+ "hyperparameter_search": [
+  {
+   "decay": 0.0018,
+   "ridge": 0.003,
+   "log_loss": 0.9723435087807577,
+   "rps": 0.19597088304235552,
+   "matches": 437
+  },
+  {
+   "decay": 0.0018,
+   "ridge": 0.001,
+   "log_loss": 0.9728456451923725,
+   "rps": 0.19590789665878156,
+   "matches": 437
+  },
+  {
+   "decay": 0.0018,
+   "ridge": 0.01,
+   "log_loss": 0.9755228549593772,
+   "rps": 0.19745160438958176,
+   "matches": 437
+  },
+  {
+   "decay": 0.003,
+   "ridge": 0.003,
+   "log_loss": 0.9756395425870732,
+   "rps": 0.19614023748144935,
+   "matches": 437
+  },
+  {
+   "decay": 0.003,
+   "ridge": 0.001,
+   "log_loss": 0.9756545997776712,
+   "rps": 0.19581632651700073,
+   "matches": 437
+  }
+ ],
+ "backtest": {
+  "label": "taban",
+  "matches": 437,
+  "log_loss": 0.973001226811947,
+  "brier": 0.5745506561754999,
+  "rps": 0.19620553075711064,
+  "accuracy": 0.5560640732265446,
+  "uniform_log_loss": 1.0986122886681098,
+  "outcome_rates": [
+   0.459954233409611,
+   0.2448512585812357,
+   0.2951945080091533
+  ],
+  "skill_vs_uniform": 0.11433611579972947,
+  "calibration": [
+   {
+    "range": "0.0-0.1",
+    "count": 58,
+    "predicted": 0.06967982198944993,
+    "observed": 0.1206896551724138
+   },
+   {
+    "range": "0.1-0.2",
+    "count": 197,
+    "predicted": 0.15575686861631036,
+    "observed": 0.15736040609137056
+   },
+   {
+    "range": "0.2-0.3",
+    "count": 437,
+    "predicted": 0.25903984977728683,
+    "observed": 0.2471395881006865
+   },
+   {
+    "range": "0.3-0.4",
+    "count": 266,
+    "predicted": 0.34126860620551785,
+    "observed": 0.32706766917293234
+   },
+   {
+    "range": "0.4-0.5",
+    "count": 128,
+    "predicted": 0.448018941552918,
+    "observed": 0.4375
+   },
+   {
+    "range": "0.5-0.6",
+    "count": 106,
+    "predicted": 0.5492630409593036,
+    "observed": 0.5754716981132075
+   },
+   {
+    "range": "0.6-0.7",
+    "count": 66,
+    "predicted": 0.6377904987447257,
+    "observed": 0.6818181818181818
+   },
+   {
+    "range": "0.7-0.8",
+    "count": 37,
+    "predicted": 0.7378423854764106,
+    "observed": 0.7567567567567568
+   },
+   {
+    "range": "0.8-0.9",
+    "count": 15,
+    "predicted": 0.8274261659358763,
+    "observed": 0.8666666666666667
+   },
+   {
+    "range": "0.9-1.0",
+    "count": 1,
+    "predicted": 0.9225630745797663,
+    "observed": 1.0
+   }
+  ],
+  "calibration_error": 0.015750248851434917,
+  "from": "2024-08-01",
+  "to": null
+ }
+}
