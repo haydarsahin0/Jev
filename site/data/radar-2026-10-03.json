@@ -1,0 +1,446 @@
+{
+ "format": "arxiv-radar/1",
+ "generated_at": "2026-10-03T10:08:51Z",
+ "demo": false,
+ "papers": [
+  {
+   "id": "2610.01450",
+   "title": "Code-Switching Spoken Language Identification as Multi-Label Set Prediction",
+   "abstract": "Code-switched (CS) speech leaks through the monolingual language identification (LID) filters used to curate massive speech corpora, calling for CS-aware LID (CS-LID). We formulate utterance-level CS-LID as multi-label language-set prediction and propose a set generator that directly outputs the languages in an utterance, comparing it against atomic-pair and score-based classification baselines. Oracle Top-k is the strongest baseline, but thresholding fails because no single threshold separates CS from monolingual speech. Our set generator predicts the correct language count on unseen pairs without assuming the number of languages, but underperforms oracle Top-k in exact set accuracy. Our analysis identifies the key obstacles to robust CS-LID: oracle cardinality, threshold instability, language bias in CS training data, and the synthetic-to-real gap.",
+   "authors": [
+    "Shunsuke Mitsumori",
+    "Matthew Wiesner",
+    "Shigeo Morishima",
+    "Shinji Watanabe"
+   ],
+   "published": "2026-10-01T10:46:44Z",
+   "categories": [
+    "eess.AS",
+    "cs.CL"
+   ],
+   "url": "https://arxiv.org/abs/2610.01450v1",
+   "pdf": "https://arxiv.org/pdf/2610.01450v1",
+   "signals": {
+    "novelty": 0.51,
+    "evidence": 0.625,
+    "practical": 0.43,
+    "relevance": 0.4,
+    "code": 0.02,
+    "hype": 0.8
+   },
+   "topic": "Speech, voice and audio",
+   "topic_confidence": 1.0,
+   "novelty_confidence": 0.97
+  },
+  {
+   "id": "2610.01445",
+   "title": "ibUMAP: Coherent and Scalable Field Evaluation for UMAP Optimization",
+   "abstract": "UMAP achieves scalable layout optimization through stochastic negative sampling. However, this stochasticity can lead to unstable embeddings across reruns and downstream reuse, as the estimated repulsive forces depend on the ordering of sampling events. We present ibUMAP, a coherent field-based alternative that evaluates attraction and repulsion from a shared embedding snapshot and applies them synchronously. Its degree-weighted repulsive field is motivated by the conditional expectation of negative sampling for a fixed embedding and represented by three scalar moments, which are evaluated efficiently on CPUs and GPUs using an interpolation-based FFT scheme. This formulation avoids explicit all-pairs computations while inducing optimization dynamics that differ from those of standard online UMAP. Controlled experiments show that synchrony and kernel capping alter the local-global fidelity trade-off, whereas FFT evaluation produces small average changes in final quality. End-to-end benchmarks show median speedups of 3.29x unseeded and 5.79x seeded over umap-learn on CPU, and 1.44x over cuML on million-scale datasets under unseeded GPU execution. These gains accompany greater run-to-run stability and measurable fidelity trade-offs.",
+   "authors": [
+    "Bin Chen",
+    "Yumeng Xue",
+    "Patrick Paetzold",
+    "Yunhai Wang",
+    "Oliver Deussen"
+   ],
+   "published": "2026-10-01T10:41:55Z",
+   "categories": [
+    "cs.LG",
+    "cs.HC"
+   ],
+   "url": "https://arxiv.org/abs/2610.01445v1",
+   "pdf": "https://arxiv.org/pdf/2610.01445v1",
+   "signals": {
+    "novelty": 0.555,
+    "evidence": 0.985,
+    "practical": 0.4,
+    "relevance": 0.16,
+    "code": 0.02,
+    "hype": 0.07
+   },
+   "topic": "Other",
+   "topic_confidence": 0.6,
+   "novelty_confidence": 0.83
+  },
+  {
+   "id": "2610.01439",
+   "title": "DRelay: Global Draft Context for Prefix-Aware Parallel Speculative Decoding Repair",
+   "abstract": "Parallel drafting reduces the drafting overhead of speculative decoding for large language models (LLMs), but its gains remain limited by the accepted prefix length. Even when the correct token is present in the candidate pool, a single early selection error prevents subsequent predictions from being used. We propose DRelay, which uses global information from the entire draft block to perform prefix-aware selective repair of candidate selections before target-model verification. DRelay bases its decisions on candidate correlations and the selected path: a global reader extracts predictive information across positions for each candidate. While a causal selector combines candidate-level information extracted by the global read with the tokens selected at preceding positions to determine whether the native choice at the current position is consistent with the global evidence and the selected prefix. It then decides whether to retain or replace the token, thereby repairing early errors and extending the accepted prefix. We further jointly train the draft backbone and the selector, combining candidate-support learning with a repair objective, while weighting the repair loss according to each block position's potential contribution to the consecutive accepted prefix. Across eight diverse benchmarks on an H800 GPU, DRelay consistently improves both average acceptance length and end-to-end decoding performance over DFlash, Domino, and DSpark. Under SGLang serving, DRelay improves average end-to-end speedup over DFlash, Domino, and DSpark by 14.7%-16.8%, 8.7%-9.3%, and 8.1%-9.3%, respectively.",
+   "authors": [
+    "Zhuoyu Wang",
+    "Junnan Huang",
+    "Xinyu Chen"
+   ],
+   "published": "2026-10-01T10:37:32Z",
+   "categories": [
+    "cs.AI"
+   ],
+   "url": "https://arxiv.org/abs/2610.01439v1",
+   "pdf": "https://arxiv.org/pdf/2610.01439v1",
+   "signals": {
+    "novelty": 0.51,
+    "evidence": 0.985,
+    "practical": 0.34,
+    "relevance": 0.21,
+    "code": 0.02,
+    "hype": 0.79
+   },
+   "topic": "Efficiency and cost",
+   "topic_confidence": 0.99,
+   "novelty_confidence": 0.96
+  },
+  {
+   "id": "2610.01436",
+   "title": "A Deterministic and Auditable AI Security Risk Assessment Framework with ATLAS Aligned Executable Rules and Formal Verification",
+   "abstract": "Artificial intelligence systems are increasingly deployed in high impact and safety critical settings, yet security assessment remains difficult to reproduce and defend under audit. Existing approaches often rely on narrative checklists or assessor driven scoring, and they lack an explicit, machine evaluable mapping from observable engineering artefacts to stable technique level outcomes. We present an evidence driven AI security assessment framework that operationalises assessment as a deterministic decision function. The framework normalises heterogeneous artefacts into a project independent Control ID taxonomy scored on a bounded four level ordinal scale, compiles technique level predicates from a pinned MITRE ATLAS snapshot via an explicit mitigation to control mapping, and outputs technique indexed feasibility and impact levels with traceable links back to the triggering evidence. We package all normative choices as a versioned assessment policy object to support repeatable reassessment across snapshots. To ensure semantic correctness, we formally verify boundedness, totality, ordered semantic consistency, and monotonicity of the compiled evaluator over the full declared score domain. We evaluate the framework on five public open source AI projects pinned to explicit repository snapshots, quantify before and after changes under a unified hardening intervention, and validate responsiveness to real engineering changes through fork based implementations of Software Bill of Materials (SBOM) generation and Continuous integration (CI) security scanning gates. Results show consistent downward shifts in feasibility profiles under strengthened observable controls, while worst case residual feasibility persists when technique specific core controls remain absent from the evidence scope.",
+   "authors": [
+    "Yixuan Huang",
+    "Basel Halak",
+    "Boojoong Kang"
+   ],
+   "published": "2026-10-01T10:33:04Z",
+   "categories": [
+    "cs.AI"
+   ],
+   "url": "https://arxiv.org/abs/2610.01436v1",
+   "pdf": "https://arxiv.org/pdf/2610.01436v1",
+   "signals": {
+    "novelty": 0.71,
+    "evidence": 0.68,
+    "practical": 0.36,
+    "relevance": 0.26,
+    "code": 0.17,
+    "hype": 0.55
+   },
+   "topic": "Evaluation, safety and reliability",
+   "topic_confidence": 1.0,
+   "novelty_confidence": 0.37
+  },
+  {
+   "id": "2610.01435",
+   "title": "Distillation of Tabular Foundation Models into Efficient Predictors",
+   "abstract": "Tabular foundation models (TFMs) achieve strong predictive performance through in-context learning, yet repeatedly conditioning on labeled data makes inference expensive. Knowledge distillation can reduce this cost by transferring their predictive ability to lightweight, dataset-specific students. However, the dependence of TFM predictions on both a labeled context and a query introduces two design questions: how to construct teacher supervision and whether expanding query coverage improves distillation. We examine these questions across two TFMs and both neural and tree-based students, and derive an effective distillation recipe. The recipe uses the full labeled training set as teacher context and trains students solely on teacher predictions for observed and synthetic queries. On TabArena, the resulting students outperform their supervised trained tuned-and-ensembled counterparts by 57-98 Elo points. Applied unchanged to TALENT, the same recipe improves matched default students on 236-258 of 300 datasets and reduces median primary error by 4.0-6.4%. The distilled students also achieve median inference speedups of 3.0-21.6 times over their teachers, offering a practical trade-off between predictive performance and repeated inference cost. Code is available at https://github.com/nums-ai/TFM_Distillation .",
+   "authors": [
+    "Minho Jeong",
+    "Dooho Lee",
+    "Jinmo Lee",
+    "Jaemin Yoo"
+   ],
+   "published": "2026-10-01T10:31:22Z",
+   "categories": [
+    "cs.LG"
+   ],
+   "url": "https://arxiv.org/abs/2610.01435v1",
+   "pdf": "https://arxiv.org/pdf/2610.01435v1",
+   "signals": {
+    "novelty": 0.505,
+    "evidence": 0.955,
+    "practical": 0.57,
+    "relevance": 0.21,
+    "code": 0.93,
+    "hype": 0.06
+   },
+   "topic": "Efficiency and cost",
+   "topic_confidence": 0.69,
+   "novelty_confidence": 0.96
+  },
+  {
+   "id": "2610.01434",
+   "title": "MWOP: Modality-aware Width-wise Operation Pruning for Efficient MLLMs",
+   "abstract": "Multimodal large language models (MLLMs) incur substantial inference costs when processing long visual-textual sequences. While existing operation compression methods exploit modality-level redundancy, they largely treat computation within attention heads and shared feed-forward network (FFN) channels as unified units, leaving finer-grained redundancy underexplored. We find that redundancy varies both across modality-interaction paths within the same attention head and across visual and textual executions of the same FFN channel. Based on these findings, we propose Modality-aware Width-wise Operation Pruning (MWOP), which independently prunes visual-to-visual (V2V), text-to-visual (T2V), and text-to-text (T2T) attention paths within each layer, and separately selects FFN channels for visual and textual inputs. A first-order Taylor criterion guides the pruning process, with FFN importance re-evaluated after attention pruning and LoRA-based recovery training. To translate the resulting fine-grained sparsity into practical acceleration, we further develop path-sparse Triton attention kernels and compact visual-side FFN execution. MWOP preserves the token sequence while reducing attention and FFN computation, making it complementary to token compression and enabling simultaneous reduction of sequence length and per-token computation. On LLaVA-OneVision-7B, MWOP alone achieves a $1.6\\times$ prefill speedup with 99.7\\% average performance retention across 12 benchmarks. Combined with two representative token compression methods, it further increases their prefill speedups from $2.0\\times$ and $1.9\\times$ to $2.9\\times$ and $2.7\\times$, respectively. Results on Qwen2.5-VL-7B further demonstrate its applicability across architectures. The code is available at https://github.com/EIT-NLP/MWOP.",
+   "authors": [
+    "Xudong Wang",
+    "Hao Wu",
+    "Haozhe Hu",
+    "Peiran Yin",
+    "Xinghao Chen",
+    "Yunpu Ma"
+   ],
+   "published": "2026-10-01T10:31:21Z",
+   "categories": [
+    "cs.CV",
+    "cs.AI",
+    "cs.CL"
+   ],
+   "url": "https://arxiv.org/abs/2610.01434v1",
+   "pdf": "https://arxiv.org/pdf/2610.01434v1",
+   "signals": {
+    "novelty": 0.55,
+    "evidence": 0.81,
+    "practical": 0.29,
+    "relevance": 0.22,
+    "code": 0.03,
+    "hype": 0.14
+   },
+   "topic": "Efficiency and cost",
+   "topic_confidence": 0.88,
+   "novelty_confidence": 0.84
+  },
+  {
+   "id": "2610.01432",
+   "title": "Learning ab initio phase-field models",
+   "abstract": "Simulating microstructure evolution requires quantum-mechanical accuracy and mesoscopic reach in length and time scales, a combination that no current method achieves. Classical phase-field models provide this reach, but their accuracy is limited by phenomenological free energies and mobilities. Here we develop a framework for learning ab initio phase-field models, where the mesoscopic equation is not postulated but derived from a Mori-Zwanzig projection of molecular dynamics onto species-density fields under explicit assumptions. The nonlocal free energy and mobility left unspecified by this equation are parametrized by neural networks and learned from short molecular dynamics trajectories generated with machine-learning interatomic potentials of ab initio accuracy. We demonstrate the framework on an iron-boron melt and on hydrogen-helium mixtures under planetary conditions. For iron-boron, the model shows that the melt at the FeB$_4$ composition is spinodally unstable at ambient pressure but stabilized at 10 GPa, offering a thermodynamic rationale for why FeB$_4$ has been synthesized only under high pressure. For hydrogen-helium, the model predicts the immiscibility boundary and captures droplet nucleation and growth in helium-rain simulations of a column corresponding to 2.2 million atoms, far beyond the scale of atomistic modeling at comparable accuracy. Trained across compositions and conditions, such models could provide a mesoscopic counterpart to ab initio molecular dynamics.",
+   "authors": [
+    "Mengyi Chen",
+    "Peichen Zhong",
+    "Zihan Zhang",
+    "Qianxiao Li"
+   ],
+   "published": "2026-10-01T10:30:37Z",
+   "categories": [
+    "cond-mat.stat-mech",
+    "cond-mat.mtrl-sci",
+    "cs.LG"
+   ],
+   "url": "https://arxiv.org/abs/2610.01432v1",
+   "pdf": "https://arxiv.org/pdf/2610.01432v1",
+   "signals": {
+    "novelty": 0.905,
+    "evidence": 0.545,
+    "practical": 0.1,
+    "relevance": 0.06,
+    "code": 0.02,
+    "hype": 0.28
+   },
+   "topic": "Other",
+   "topic_confidence": 1.0,
+   "novelty_confidence": 0.71
+  },
+  {
+   "id": "2610.01428",
+   "title": "Generalization Is Stability, Not Accuracy: Multi-Axis Evaluation of LLMs",
+   "abstract": "Generalization in large language models (LLMs) is the ability to produce consistent and semantically stable outputs when the same input is expressed in different ways. Existing work typically evaluates generalization through aggregate accuracy on a single prompt format, task, or set of variations, which conflates robustness with overall benchmark performance. In this work, we show generalization evaluation at the level of individual examples, across multiple input variants, and across different aspects of model behavior, focusing on variability rather than reducing performance to a score that can be improved through narrow training or other ways that obfuscate generalization evaluation. Following this view, we introduce the Stability-Aware Generalization Objective (SAGO), a framework that measures how much model behavior changes for the same input under different variations and benchmarks, capturing variability across several dimensions including generation consistency, internal activations, confidence, and response mirroring. We show that many commonly used models exhibit statistically significant and consistent generalization instability: no model generalizes uniformly, behavioral axes capture independent failure modes, and cross-dataset variation can reverse model rankings.",
+   "authors": [
+    "Nagham Omar",
+    "Mahmoud Jabarin",
+    "Maya Rozenshtein",
+    "Rom Himelstein",
+    "Avi Mendelson",
+    "Amit LeVi"
+   ],
+   "published": "2026-10-01T10:27:25Z",
+   "categories": [
+    "cs.CL",
+    "cs.AI",
+    "cs.LG"
+   ],
+   "url": "https://arxiv.org/abs/2610.01428v1",
+   "pdf": "https://arxiv.org/pdf/2610.01428v1",
+   "signals": {
+    "novelty": 0.725,
+    "evidence": 0.765,
+    "practical": 0.48,
+    "relevance": 0.42,
+    "code": 0.02,
+    "hype": 0.85
+   },
+   "topic": "Evaluation, safety and reliability",
+   "topic_confidence": 1.0,
+   "novelty_confidence": 0.32
+  },
+  {
+   "id": "2610.01427",
+   "title": "SHAMS: An Audio-Grounded Pronunciation Benchmark for Levantine Arabic",
+   "abstract": "Levantine Arabic (LA) is spoken by tens of millions of people, creating a pressing need for shared benchmarks to evaluate LA speech-language technologies. Evaluating such technology is particularly challenging given LA's internal diversity and its opaque and non-standardized orthography. We present SHAMS (SHami Annotated Multi-dialect Speech), a benchmark comprising 1,300 utterances drawn from open audio corpora, balanced across five LA varieties (Urban and Rural Palestinian, and Urban Jordanian, Lebanese, and Syrian). Each utterance is represented across four aligned tiers: audio, unvocalized orthography, diacritized text, and phonetic transcription. This structure supports evaluation of various downstream tasks such as diacritization, grapheme-to-phoneme conversion, automatic speech recognition, and audio-to-phoneme, grounded in audio and stratified by variety. We benchmark open and proprietary models across these tasks to demonstrate the utility of this benchmark for measuring progress across LA. We release SHAMS at https://shams-nlp.github.io .",
+   "authors": [
+    "Ben Sapirstein",
+    "Roy Mattar",
+    "Guy Mor-Lan",
+    "Ahlam Mohamed",
+    "Letizia Cerqueglini",
+    "Morris Alper"
+   ],
+   "published": "2026-10-01T10:26:46Z",
+   "categories": [
+    "cs.CL"
+   ],
+   "url": "https://arxiv.org/abs/2610.01427v1",
+   "pdf": "https://arxiv.org/pdf/2610.01427v1",
+   "signals": {
+    "novelty": 0.54,
+    "evidence": 0.59,
+    "practical": 0.62,
+    "relevance": 0.41,
+    "code": 0.94,
+    "hype": 0.6
+   },
+   "topic": "Speech, voice and audio",
+   "topic_confidence": 0.99,
+   "novelty_confidence": 0.81
+  },
+  {
+   "id": "2610.01426",
+   "title": "Least-time Gradient Flow",
+   "abstract": "Prescribing the speed of gradient flow on the risk itself, by the dynamics $\\dot w=-u(E(w))\\nabla E(w)/\\abs{\\nabla E(w)}^{2}$, makes the risk $e(t)=E(w(t))$ obey $\\dot e=-u(e)$ exactly, whatever the landscape~$E$; the time needed to reach zero risk from $e_0$ is $\\int_0^{e_0}\\dd e/u(e)$. Minimizing this time alone is ill posed, and we study the regularized problem $\\inf\\{\\int_0^{e_0}(\\tfrac\\lambda2\\abs{u'}^{2}+1/u)\\,\\dd e:\\ u\\in H^{1}(0,e_0),\\ u\\ge0,\\ u(0)=0\\}$, $λ>0$. We prove that the minimizer exists, is unique, and is a linearly scaled cycloid, and we show that the optimal rate behaves like $u^{*}(e)\\sim(9/(2λ))^{1/3}e^{2/3}$ near zero risk: the exponent $2/3$ is the one found in \\cite{betti2026holder} by a power-law ansatz, and it lies in the Hölder window $(\\tfrac12,1)$ where the arrival is in finite time with vanishing weight speed. The proof follows the classical route: existence by the direct method, uniqueness by strict convexity, positivity of the minimizer away from the origin, and the explicit integration of the Euler-Lagrange equation.",
+   "authors": [
+    "Alessandro Betti",
+    "Marco Gori",
+    "Stefano Melacci",
+    "Jinwei Zhao"
+   ],
+   "published": "2026-10-01T10:26:38Z",
+   "categories": [
+    "cs.LG",
+    "math.OC"
+   ],
+   "url": "https://arxiv.org/abs/2610.01426v1",
+   "pdf": "https://arxiv.org/pdf/2610.01426v1",
+   "signals": {
+    "novelty": 0.545,
+    "evidence": 0.0,
+    "practical": 0.17,
+    "relevance": 0.09,
+    "code": 0.01,
+    "hype": 0.07
+   },
+   "topic": "Training and alignment methods",
+   "topic_confidence": 0.48,
+   "novelty_confidence": 0.86
+  },
+  {
+   "id": "2610.01425",
+   "title": "Why Does Train-Validation Separation Emerge? Update-Pressure Density Dynamics in Pretrained Backbones",
+   "abstract": "Train-validation separation is the evolving difference between performance on observed training examples and a finite held-out validation set. We propose a dynamic structural account of how this gap develops during adaptation of pretrained models: continued fitting can shift update demand from broadly reusable support toward narrower support with weaker held-out transfer. A conditional local model links this shift to increasing heterogeneity in gradient allocation and train-validation separation. Fixed training probes make this structural evolution observable without validation examples entering the readouts; held-out performance is used separately to evaluate its relation to the gap. In a constructed hierarchy implemented with a residual multilayer perceptron (ResMLP), increasing the target share of example-private features from $p=.3$ to $.5$ to $.7$, while preserving the relative mixture $1{:}2{:}3{:}4$ among the four shared feature levels, increases the final mean accuracy gap from $.185$ to $.331$ to $.527$ across five runs per condition. Masked-input losses measured separately on training and validation examples expose the corresponding transfer asymmetry. The natural language processing (NLP) analysis uses 10-epoch runs of RoBERTa, DeBERTa, and Qwen on six datasets (90 runs): the training-probe-weighted within-class and overall dispersion readouts each have positive raw and smoothed level correlations with the accuracy gap in all 90 runs. Raw changes paired at approximately one-epoch intervals remain positively associated in 86/90 and 87/90 runs, respectively. A 40-epoch ResNet-18 study tests both readouts on three vision datasets. Together, controlled simulation, NLP, and vision support the dynamic structural account across settings, with real-model evidence testing its observable predictions under the specified monitors.",
+   "authors": [
+    "Yuchen Li",
+    "Mingyu Du",
+    "Zongqi Fan",
+    "Ken-Tye Yong",
+    "Nguyen H. Tran"
+   ],
+   "published": "2026-10-01T10:25:57Z",
+   "categories": [
+    "cs.LG"
+   ],
+   "url": "https://arxiv.org/abs/2610.01425v1",
+   "pdf": "https://arxiv.org/pdf/2610.01425v1",
+   "signals": {
+    "novelty": 0.56,
+    "evidence": 0.9,
+    "practical": 0.23,
+    "relevance": 0.17,
+    "code": 0.02,
+    "hype": 0.08
+   },
+   "topic": "Training and alignment methods",
+   "topic_confidence": 0.58,
+   "novelty_confidence": 0.82
+  },
+  {
+   "id": "2610.01418",
+   "title": "SpikeMoE: Brain-Inspired Competitive Routing for Flexible Spiking Mixture-of-Experts",
+   "abstract": "Spiking Neural Networks (SNNs) enable event-driven computation through biologically inspired dynamics at the neuronal scale, while Mixture-of-Experts (MoE) perform conditional computation through expert selection at the model scale. Integrating their strengths offers potential for flexible neural architectures. A key challenge, however, lies in designing an expert selection mechanism based on spiking activity. To address this, we introduce a spike-based k-WTA Router inspired by competition-inhibition observed in the hippocampal CA1 region. The router incorporates lateral inhibition and refractory period to select Top-K experts according to discrete spike counts. Building on this, we present SpikeMoE, a framework that integrates neuronal-scale spiking dynamics with model-scale expert selection. To address incomplete multisensory inputs in multimodal tasks, we further equip SpikeMoE with a two-stage missing-modality modeling module that combines empirical prototypes from an observed-modality pool with modality-specific learnable embeddings to construct missing-modality representations. Experiments on vision, language, and multimodal benchmarks demonstrate that SpikeMoE achieves state-of-the-art performance among the SNN baselines, matches or exceeds the performance of ANN counterparts, and maintains robustness across diverse missing-modality conditions. These results demonstrate a favorable trade-off between performance and energy efficiency, validating the integration of spiking dynamics with sparse expert computation and highlighting SpikeMoE as a promising approach to energy-efficient brain-inspired computing.",
+   "authors": [
+    "Xiaoli Liu",
+    "Yujie Liang",
+    "Jialin Li",
+    "Malu Zhang"
+   ],
+   "published": "2026-10-01T10:22:00Z",
+   "categories": [
+    "cs.AI"
+   ],
+   "url": "https://arxiv.org/abs/2610.01418v1",
+   "pdf": "https://arxiv.org/pdf/2610.01418v1",
+   "signals": {
+    "novelty": 0.565,
+    "evidence": 0.9,
+    "practical": 0.2,
+    "relevance": 0.12,
+    "code": 0.02,
+    "hype": 0.86
+   },
+   "topic": "Other",
+   "topic_confidence": 0.73,
+   "novelty_confidence": 0.81
+  },
+  {
+   "id": "2610.01415",
+   "title": "Beyond Memory: Harnessing Long-Horizon Agents with Explicit Belief States",
+   "abstract": "Large language model (LLM) agents can now undertake increasingly complex tasks, but the way they organize interaction history into memory does not ensure a coherent understanding of the current world. We introduce PoS, an inference-time framework that constructs and continually maintains explicit belief states as the agent's decision context. Each belief combines an estimate of the current world state with unresolved task requirements, making explicit what the agent still needs to learn and accomplish. To keep this belief reliable and actionable, PoS validates its consistency and monitors task progress to detect Belief Trapping, where the agent continues to act without making meaningful progress toward the goal. Recovery is then tailored to both the trapping pattern and the type of unresolved task requirement. Experiments on four benchmarks spanning execution and diagnosis show that PoS achieves the highest overall performance on every benchmark with all three LLM backbones. Ablations demonstrate the importance of consistency validation and recovery, while context-scaling experiments show resilience to context growth. Together, these results support belief construction and continual maintenance as a foundation for long-horizon context management beyond history retention and compression.",
+   "authors": [
+    "Yu Luo",
+    "Jiamin Jiang",
+    "Yimin Zuo",
+    "Xidao Wen",
+    "Rongchen Gao",
+    "Yongqian Sun"
+   ],
+   "published": "2026-10-01T10:21:46Z",
+   "categories": [
+    "cs.AI"
+   ],
+   "url": "https://arxiv.org/abs/2610.01415v1",
+   "pdf": "https://arxiv.org/pdf/2610.01415v1",
+   "signals": {
+    "novelty": 0.66,
+    "evidence": 0.995,
+    "practical": 0.52,
+    "relevance": 0.42,
+    "code": 0.02,
+    "hype": 0.78
+   },
+   "topic": "LLM agents and tool use",
+   "topic_confidence": 1.0,
+   "novelty_confidence": 0.52
+  },
+  {
+   "id": "2610.01413",
+   "title": "Optimal Transport Meets Reinforcement Learning: A Survey",
+   "abstract": "Reinforcement learning (RL) algorithms frequently compare probability distributions, such as state visitation distributions induced by policies and experts, action distributions from learned policies and offline datasets, or transition distributions from learned models and environments. However, commonly used divergences may become ineffective when these distributions overlap weakly, which is frequently encountered in imitation learning, offline RL, and deployment under distribution shift. Optimal transport (OT) offers an alternative by measuring the cost of \\emph{moving} probability mass from one distribution to another under a ground cost that encodes task geometry. This survey covers how OT is used inside RL objectives and algorithms. For each method, we identify: the role OT plays, the distributions compared, the OT formulation used, and the treatment of temporal structure. Beyond categorising existing methods, we discuss the motivations behind different OT choices, practical considerations such as cost design and computational challenges, and highlight open problems including scalable trajectory-level transport, principled handling of mass mismatch, and theoretical analysis for OT-regularised RL.",
+   "authors": [
+    "Yujie Zhu",
+    "Charles A. Hepburn",
+    "Matthew Thorpe",
+    "Giovanni Montana"
+   ],
+   "published": "2026-10-01T10:19:53Z",
+   "categories": [
+    "stat.ML",
+    "cs.AI",
+    "cs.LG"
+   ],
+   "url": "https://arxiv.org/abs/2610.01413v1",
+   "pdf": "https://arxiv.org/pdf/2610.01413v1",
+   "signals": {
+    "novelty": 0.205,
+    "evidence": 0.0,
+    "practical": 0.19,
+    "relevance": 0.11,
+    "code": 0.01,
+    "hype": 0.93
+   },
+   "topic": "Other",
+   "topic_confidence": 0.51,
+   "novelty_confidence": 0.38
+  },
+  {
+   "id": "2610.01408",
+   "title": "Smoother Flow Matching via Contrastive Trajectory Repulsion",
+   "abstract": "Trajectory crossing remains a critical bottleneck in Flow Matching (FM), and previous works typically view these crossings from a theoretical optimization perspective causing velocity averaging. They attempt to address it indirectly by post-hoc distillation or endpoint coupling, without explicitly regulating the intermediate trajectories. In this paper, we introduce a new network learning perspective: crossing points inherently induce large local Lipschitz constants in the target velocity field, leading to two drawbacks. First, high Lipschitz constants correspond to high-frequency signals in the velocity field that neural networks struggle to fit due to spectral bias. Second, they also imply drastic velocity variations, leading to severe numerical integration errors in few-step inference. To alleviate this, we propose CoFlow, a framework that introduces the contrastive learning paradigm into FM to explicitly repel trajectories during training, thereby lowering the local Lipschitz constants of the velocity field. Specifically, we formulate CoFlow from a Stochastic Differential Equation (SDE) perspective by injecting a repulsive drift term. This drift actively guides the forward process of positive samples away from negative trajectories, effectively reducing the local Lipschitz constant. Furthermore, we derive an equivalent stochastic interpolant formulation from this SDE, providing a simple and tractable design space to control the influence of negative samples. Extensive experiments on ImageNet 256x256 demonstrate that CoFlow significantly reduces FID compared to standard FM in few-step inference (e.g., 20 steps), with no added training overhead. The code can be accessed at: https://github.com/HKUST-LongGroup/CoFlow",
+   "authors": [
+    "Ziqi Jiang",
+    "Zhenqi He",
+    "Long Chen"
+   ],
+   "published": "2026-10-01T10:11:14Z",
+   "categories": [
+    "cs.CV",
+    "cs.LG"
+   ],
+   "url": "https://arxiv.org/abs/2610.01408v1",
+   "pdf": "https://arxiv.org/pdf/2610.01408v1",
+   "signals": {
+    "novelty": 0.685,
+    "evidence": 0.155,
+    "practical": 0.22,
+    "relevance": 0.14,
+    "code": 0.02,
+    "hype": 0.86
+   },
+   "topic": "Other",
+   "topic_confidence": 0.4,
+   "novelty_confidence": 0.45
+  }
+ ]
+}
