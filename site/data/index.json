@@ -1,6 +1,11 @@
 {
- "updated_at": "2026-10-20T20:14:16Z",
+ "updated_at": "2026-10-21T09:45:43Z",
  "files": [
+  {
+   "date": "2026-10-21",
+   "path": "data/radar-2026-10-21.json",
+   "count": 120
+  },
   {
    "date": "2026-10-20",
    "path": "data/radar-2026-10-20.json",
